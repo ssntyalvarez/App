@@ -42,13 +42,20 @@ export async function listRecentReviews(max = 6) {
 }
 
 // Promedio y cantidad de votos calculados por Firestore sobre las reseñas reales.
+// average() con filtro necesita el índice compuesto (gameId, score) de firestore.indexes.json;
+// si todavía no se creó en el proyecto, se calcula leyendo las reseñas del juego.
 export async function getCommunityStats(gameId) {
-  const snap = await getAggregateFromServer(
-    query(collection(db, 'reviews'), where('gameId', '==', String(gameId))),
-    { votes: count(), avg: average('score') },
-  )
-  const { votes, avg } = snap.data()
-  return { votes, avg: votes ? avg : null }
+  try {
+    const snap = await getAggregateFromServer(
+      query(collection(db, 'reviews'), where('gameId', '==', String(gameId))),
+      { votes: count(), avg: average('score') },
+    )
+    const { votes, avg } = snap.data()
+    return { votes, avg: votes ? avg : null }
+  } catch (err) {
+    if (err?.code !== 'failed-precondition') throw err
+    return statsFromReviews(await listGameReviews(gameId))
+  }
 }
 
 export function statsFromReviews(reviews) {

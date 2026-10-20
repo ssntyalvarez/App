@@ -166,10 +166,26 @@ Imágenes, títulos y notas de Metacritic de estas capturas: datos de [RAWG](htt
 - Por eso la lógica del proxy se movió de `api/_lib/rawg.js` a `server/rawg.js`: así `api/` contiene solo la función `api/rawg.js` y no depende de que Vercel ignore subcarpetas con guion bajo. Se volvió a probar la función con y sin clave (503 / 200 con datos reales).
 - `main` todavía tiene la plantilla original; Checkpoint está en la rama `claude/wizardly-lovelace-f9qift`. Para producción hay que fusionarla en `main` (o elegirla como rama de producción en Vercel).
 
+### Verificación con el proyecto real de Firebase (`mi-app-681e0`)
+Con la configuración web del proyecto en el `.env` local se ejecutó un script con el SDK real (dos cuentas temporales, eliminadas al final junto con sus datos):
+
+| Prueba | Resultado |
+| --- | --- |
+| Registro con correo y contraseña / registro anónimo | Habilitado / rechazado (`ADMIN_ONLY_OPERATION`) |
+| Crear opinión con nota 0, consultarla desde otra cuenta, editarla, recargar (sesión nueva) y eliminarla | Correcto |
+| Promedio con dos votos (9 y 6) | 7,5 |
+| Otra cuenta edita, borra o publica a nombre ajeno; nota 11; correo en el perfil; puntuación en la biblioteca; modificar biblioteca ajena | Todo denegado por las reglas publicadas |
+| Biblioteca: agregar como completado con fecha y eliminar | Correcto |
+| App en el navegador con el proyecto real: inicio, tarjetas con “Sin votos”, ficha con invitación a opinar, formulario de registro | Correcto, sin avisos de “sin conectar” |
+
+Dificultades:
+1. **Índice compuesto que el emulador no exige.** `average('score')` filtrado por `gameId` falló en el proyecto real con `FAILED_PRECONDITION: The query requires an index`. El emulador no valida índices, por eso no apareció antes. Se declaró el índice en `firestore.indexes.json` y la app calcula el promedio leyendo las opiniones mientras el índice no exista.
+2. **Dato de prueba huérfano.** El primer intento del script se cortó en ese error y borró las cuentas temporales antes que sus documentos: quedó la reseña `reviews/999999001_OhZjzJ…` (“temporal”, nota 0), que las reglas ya no permiten borrar a nadie salvo desde la consola. Se corrigió el script para borrar primero los documentos y se pidió eliminarla desde la consola de Firebase.
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)
-- **Firebase:** crear el proyecto, habilitar *Correo electrónico/contraseña*, crear Firestore y publicar `firestore.rules`; cargar las cuatro variables `VITE_FIREBASE_*`.
+- **Firebase:** proyecto creado y verificado. Falta crear el índice compuesto de `reviews` y borrar la reseña de prueba huérfana desde la consola.
 - **RAWG:** la clave ya funciona en desarrollo local (`.env`, no versionado); falta cargarla como `RAWG_API_KEY` en Vercel.
 - **Vercel:** importar el repositorio con Root Directory `my-react-app`, cargar las variables y desplegar (requiere autorización del responsable). Luego agregar el dominio de Vercel en *Authentication → Dominios autorizados* y repetir las pruebas sobre la URL publicada (agregar, consultar, modificar, eliminar, recargar y celular).
-- Hasta entonces, **ninguna prueba se hizo contra el proyecto real de Firebase**: cuentas, opiniones y biblioteca se verificaron con los emuladores. RAWG sí se verificó con datos reales (ver arriba).
+- La capa de datos ya se verificó contra el proyecto real de Firebase y RAWG con datos reales; falta repetir las pruebas en la URL publicada.

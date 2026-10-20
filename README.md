@@ -81,6 +81,7 @@ Reiniciá `npm run dev` después de cambiar `.env`. En desarrollo, Vite atiende 
    npx firebase deploy --only firestore:rules --project <id-del-proyecto>
    ```
    Desplegar en Vercel **no** actualiza las reglas.
+5. Crear el **índice compuesto** de `reviews` (`gameId` ↑, `score` ↑) que usa el promedio de la comunidad: en **Firestore → Índices → Compuesto → Crear índice** (colección `reviews`, campos `gameId` y `score` ascendentes, alcance *Colección*), o con `npx firebase deploy --only firestore:indexes --project <id>`. Mientras se crea, la app calcula el promedio leyendo las opiniones.
 
 No hace falta el plan Blaze ni Firebase Storage: el avatar se comprime en el navegador y se guarda dentro del perfil (máx. ~60 KB), y la portada es una imagen de RAWG.
 
