@@ -23,9 +23,8 @@ La evolución por iteraciones, las pruebas, las dificultades y la justificación
 │   ├── BITACORA.md            # Iteraciones, pruebas y dificultades
 │   └── evidencias/            # Capturas generadas por las pruebas
 └── my-react-app/              # ← Root Directory en Vercel (contiene package.json)
-    ├── api/
-    │   ├── rawg.js            # Función de servidor de Vercel: GET /api/rawg
-    │   └── _lib/rawg.js       # Lista blanca de rutas/parámetros, recorte de campos y caché
+    ├── api/rawg.js            # Función de servidor de Vercel: GET /api/rawg
+    ├── server/rawg.js         # Lógica del proxy: lista blanca, recorte de campos y caché
     ├── src/
     │   ├── main.jsx / App.jsx # Proveedores y rutas (React Router)
     │   ├── lib/firebase.js    # ← Conexión con Firebase (Auth + Firestore)

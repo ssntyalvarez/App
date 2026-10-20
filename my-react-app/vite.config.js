@@ -1,7 +1,7 @@
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import { defineConfig, loadEnv } from 'vite'
-import { handleRawgRequest } from './api/_lib/rawg.js'
+import { handleRawgRequest } from './server/rawg.js'
 
 // En desarrollo, sirve /api/rawg con la misma lógica que la función de Vercel.
 // RAWG_API_KEY se lee de .env sin prefijo VITE_, así que no se expone al cliente.

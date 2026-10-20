@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { buildUpstream, handleRawgRequest } from '../../api/_lib/rawg.js'
+import { buildUpstream, handleRawgRequest } from '../../server/rawg.js'
 
 const url = (qs) => `http://localhost/api/rawg?${qs}`
 const params = (qs) => new URLSearchParams(qs)

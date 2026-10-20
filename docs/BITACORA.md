@@ -161,6 +161,11 @@ Problemas que solo aparecieron con datos reales y se corrigieron:
 
 Imágenes, títulos y notas de Metacritic de estas capturas: datos de [RAWG](https://rawg.io).
 
+### Preparación para Vercel
+- Se confirmó en la documentación de Vercel que, para proyectos que no son Next.js, cada archivo de `api/` se publica como función y que la firma `export function GET(request)` con `"type": "module"` es la correcta.
+- Por eso la lógica del proxy se movió de `api/_lib/rawg.js` a `server/rawg.js`: así `api/` contiene solo la función `api/rawg.js` y no depende de que Vercel ignore subcarpetas con guion bajo. Se volvió a probar la función con y sin clave (503 / 200 con datos reales).
+- `main` todavía tiene la plantilla original; Checkpoint está en la rama `claude/wizardly-lovelace-f9qift`. Para producción hay que fusionarla en `main` (o elegirla como rama de producción en Vercel).
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)
