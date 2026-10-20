@@ -5,6 +5,7 @@ import { FirebasePending, Spinner } from '../components/States.jsx'
 import { authMessage, useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
+import { useDocumentTitle } from '../lib/hooks.js'
 import {
   createProfile,
   firestoreMessage,
@@ -16,6 +17,7 @@ import {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function AuthShell({ title, lead, children, footer }) {
+  useDocumentTitle(title)
   return (
     <div className="auth">
       <div className="auth__art" aria-hidden="true">

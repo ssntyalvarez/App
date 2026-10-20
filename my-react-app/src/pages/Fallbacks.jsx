@@ -1,7 +1,9 @@
 import { Link } from 'react-router'
 import { EmptyState } from '../components/States.jsx'
+import { useDocumentTitle } from '../lib/hooks.js'
 
 export function NotFound() {
+  useDocumentTitle('Página no encontrada')
   return (
     <div className="page container">
       <EmptyState title="Página no encontrada">

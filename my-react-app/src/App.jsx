@@ -1,26 +1,25 @@
 import { createBrowserRouter } from 'react-router'
 import Layout from './components/Layout.jsx'
-import { Login, Register, Welcome } from './pages/Auth.jsx'
-import Catalog from './pages/Catalog.jsx'
 import { NotFound, RouteError } from './pages/Fallbacks.jsx'
-import GameDetail from './pages/GameDetail.jsx'
 import Home from './pages/Home.jsx'
-import Profile from './pages/Profile.jsx'
-import ProfileEdit from './pages/ProfileEdit.jsx'
+
+// El inicio se incluye en el paquete principal; el resto de las páginas se descarga al visitarlas.
+const page = (load, name = 'default') => async () => ({ Component: (await load())[name] })
 
 export const router = createBrowserRouter([
   {
     element: <Layout />,
     errorElement: <RouteError />,
+    hydrateFallbackElement: null,
     children: [
       { index: true, element: <Home /> },
-      { path: 'juegos', element: <Catalog /> },
-      { path: 'juego/:id/:slug?', element: <GameDetail /> },
-      { path: 'u/:handle', element: <Profile /> },
-      { path: 'ajustes/perfil', element: <ProfileEdit /> },
-      { path: 'ingresar', element: <Login /> },
-      { path: 'registro', element: <Register /> },
-      { path: 'bienvenida', element: <Welcome /> },
+      { path: 'juegos', lazy: page(() => import('./pages/Catalog.jsx')) },
+      { path: 'juego/:id/:slug?', lazy: page(() => import('./pages/GameDetail.jsx')) },
+      { path: 'u/:handle', lazy: page(() => import('./pages/Profile.jsx')) },
+      { path: 'ajustes/perfil', lazy: page(() => import('./pages/ProfileEdit.jsx')) },
+      { path: 'ingresar', lazy: page(() => import('./pages/Auth.jsx'), 'Login') },
+      { path: 'registro', lazy: page(() => import('./pages/Auth.jsx'), 'Register') },
+      { path: 'bienvenida', lazy: page(() => import('./pages/Auth.jsx'), 'Welcome') },
       { path: '*', element: <NotFound /> },
     ],
   },

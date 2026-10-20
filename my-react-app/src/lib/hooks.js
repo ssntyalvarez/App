@@ -10,6 +10,13 @@ import { listLibrary } from './library.js'
 
 const DAY = 24 * 60 * 60 * 1000
 
+// Título de la pestaña del navegador para cada página.
+export function useDocumentTitle(title) {
+  useEffect(() => {
+    document.title = title ? `${title} · Checkpoint` : 'Checkpoint · Descubrí y puntuá videojuegos'
+  }, [title])
+}
+
 export function useDebouncedValue(value, delay = 400) {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from 'react-router'
+import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate, useNavigation } from 'react-router'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
@@ -119,6 +119,7 @@ function AccountMenu() {
 
 export default function Layout() {
   const location = useLocation()
+  const navigation = useNavigation()
   // El menú queda asociado a la ruta en la que se abrió: al navegar se cierra solo.
   const [menuPath, setMenuPath] = useState(null)
   const menuOpen = menuPath === location.pathname
@@ -131,6 +132,9 @@ export default function Layout() {
   return (
     <>
       <a href="#contenido" className="skip-link">Saltar al contenido</a>
+      {navigation.state === 'loading' && (
+        <div className="route-progress" role="progressbar" aria-label="Cargando página" />
+      )}
       <header className="site-header">
         <div className="site-header__inner">
           <Link to="/" className="brand" aria-label="Checkpoint, inicio">

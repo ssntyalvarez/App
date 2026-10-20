@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import GameCard from '../components/GameCard.jsx'
 import { CardSkeletons, EmptyState, ErrorState, Spinner } from '../components/States.jsx'
-import { useDebouncedValue, useGenres, useInfiniteGames, usePlatforms } from '../lib/hooks.js'
+import { useDebouncedValue, useDocumentTitle, useGenres, useInfiniteGames, usePlatforms } from '../lib/hooks.js'
 import { ORDER_OPTIONS } from '../lib/rawg.js'
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -10,6 +10,7 @@ const YEARS = Array.from({ length: CURRENT_YEAR + 1 - 1980 + 1 }, (_, i) => CURR
 
 export default function Catalog() {
   const [params, setParams] = useSearchParams()
+  useDocumentTitle(params.get('q') ? `“${params.get('q')}” en el catálogo` : 'Catálogo')
   // Se parte de la URL vigente al momento del evento: las navegaciones son transiciones
   // y un cierre con parámetros viejos podría restaurar un filtro ya limpiado.
   const updateParams = (mutate, options) => {

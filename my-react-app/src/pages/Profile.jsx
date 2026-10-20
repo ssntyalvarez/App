@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { formatAverage, formatDate, formatMonth, gamePath, rawgImage } from '../lib/format.js'
-import { invalidateReviewData, useLibrary, useProfileByHandle, useUserReviews } from '../lib/hooks.js'
+import { invalidateReviewData, useDocumentTitle, useLibrary, useProfileByHandle, useUserReviews } from '../lib/hooks.js'
 import { MAX_FEATURED, STATUSES, statusLabel } from '../lib/library.js'
 import { useLibraryActions } from '../lib/libraryActions.js'
 import { firestoreMessage } from '../lib/profiles.js'
@@ -167,6 +167,7 @@ export default function Profile() {
   const filter = FILTERS.some((f) => f.value === params.get('estado')) ? params.get('estado') : 'all'
 
   const profileQ = useProfileByHandle(handle)
+  useDocumentTitle(profileQ.data ? `${profileQ.data.displayName} (@${profileQ.data.handle})` : 'Perfil')
   const isOwner = Boolean(user && profileQ.data && user.uid === profileQ.data.uid)
   // El dueño ve su perfil en tiempo real (por ejemplo, al destacar un juego).
   const profile = isOwner && ownProfile ? ownProfile : profileQ.data
@@ -287,11 +288,22 @@ export default function Profile() {
           </section>
         )}
 
-        <div className="tabs" role="tablist" aria-label="Contenido del perfil">
-          <button type="button" role="tab" id="tab-biblioteca" aria-controls="panel-biblioteca" aria-selected={tab === 'biblioteca'} onClick={() => setParam('tab', '')}>
+        <div
+          className="tabs"
+          role="tablist"
+          aria-label="Contenido del perfil"
+          onKeyDown={(e) => {
+            // Flechas izquierda/derecha para cambiar de pestaña (patrón de pestañas ARIA).
+            if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+            const next = tab === 'biblioteca' ? 'resenas' : 'biblioteca'
+            setParam('tab', next === 'resenas' ? 'resenas' : '')
+            document.getElementById(`tab-${next}`)?.focus()
+          }}
+        >
+          <button type="button" role="tab" id="tab-biblioteca" aria-controls="panel-biblioteca" aria-selected={tab === 'biblioteca'} tabIndex={tab === 'biblioteca' ? 0 : -1} onClick={() => setParam('tab', '')}>
             Biblioteca <span className="pill">{entries.length}</span>
           </button>
-          <button type="button" role="tab" id="tab-resenas" aria-controls="panel-resenas" aria-selected={tab === 'resenas'} onClick={() => setParam('tab', 'resenas')}>
+          <button type="button" role="tab" id="tab-resenas" aria-controls="panel-resenas" aria-selected={tab === 'resenas'} tabIndex={tab === 'resenas' ? 0 : -1} onClick={() => setParam('tab', 'resenas')}>
             Reseñas <span className="pill">{reviewList.length}</span>
           </button>
         </div>

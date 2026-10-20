@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { rawgImage } from '../lib/format.js'
-import { invalidateProfileData, useDebouncedValue, useGames, useLibrary } from '../lib/hooks.js'
+import { invalidateProfileData, useDebouncedValue, useDocumentTitle, useGames, useLibrary } from '../lib/hooks.js'
 import { fileToAvatar } from '../lib/image.js'
 import {
   MAX_BIO,
@@ -219,6 +219,7 @@ function EditForm({ user, profile }) {
 
 export default function ProfileEdit() {
   const { user, profile, loading } = useAuth()
+  useDocumentTitle('Editar perfil')
   if (!firebaseReady) return <div className="page container"><FirebasePending /></div>
   if (loading) return <div className="page container"><Spinner /></div>
   if (!user) return <Navigate to="/ingresar" replace state={{ from: '/ajustes/perfil' }} />

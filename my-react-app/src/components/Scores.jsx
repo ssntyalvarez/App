@@ -71,7 +71,7 @@ export function CommunityScore({ stats, loading, size = 'md', showLabel = true, 
 }
 
 // Puntuación personal de un usuario (0–10) o “Sin puntuar”.
-export function PersonalScore({ score, label = 'Su nota', size = 'sm' }) {
+export function PersonalScore({ score, label = 'Su nota', size = 'sm', showLabel = true }) {
   const empty = score == null
   return (
     <div className={`score score--personal score--${size} ${empty ? 'is-empty' : ''}`}>
@@ -82,12 +82,15 @@ export function PersonalScore({ score, label = 'Su nota', size = 'sm' }) {
           <>
             {score}
             <small>/10</small>
+            {!showLabel && <span className="sr-only"> (tu nota personal)</span>}
           </>
         )}
       </span>
-      <span className="score__label">
-        <strong>{label}</strong>
-      </span>
+      {showLabel && (
+        <span className="score__label">
+          <strong>{label}</strong>
+        </span>
+      )}
     </div>
   )
 }

@@ -34,5 +34,19 @@ export default defineConfig(({ mode }) => {
       babel({ presets: [reactCompilerPreset()] }),
       rawgDevApi(process.env.RAWG_API_KEY || env.RAWG_API_KEY),
     ],
+    build: {
+      rolldownOptions: {
+        output: {
+          // Bibliotecas en bloques propios: cambian poco y el navegador las reutiliza entre despliegues.
+          codeSplitting: {
+            groups: [
+              { name: 'firestore', test: /node_modules[\\/]@firebase[\\/]firestore/, priority: 2 },
+              { name: 'firebase', test: /node_modules[\\/]@?firebase/, priority: 1 },
+              { name: 'react', test: /node_modules[\\/](react|react-dom|react-router|scheduler|@tanstack)[\\/]/ },
+            ],
+          },
+        },
+      },
+    },
   }
 })

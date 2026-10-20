@@ -309,6 +309,30 @@ textarea {
   justify-content: center;
 }
 
+/* ---------- Progreso de navegación ---------- */
+
+.route-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--lime), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: route-progress 1s ease-in-out infinite;
+}
+
+@keyframes route-progress {
+  from {
+    background-position: -50% 0;
+  }
+  to {
+    background-position: 150% 0;
+  }
+}
+
 /* ---------- Encabezado ---------- */
 
 .site-header {
@@ -973,11 +997,13 @@ fieldset {
 
 .score--lg.score--personal .score__value {
   width: auto;
-  height: 60px;
-  min-width: 76px;
-  padding: 0 16px;
-  font-size: 1.6rem;
-  border-radius: 14px;
+  height: 76px;
+  min-width: 96px;
+  padding: 0 18px;
+  font-size: 1.9rem;
+  border-radius: 16px;
+  background: transparent;
+  border: 2px solid var(--text);
 }
 
 .score--lg.score--personal.is-empty .score__value {
@@ -1360,6 +1386,34 @@ fieldset {
 @media (max-width: 1000px) {
   .game-grid--rail {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* En celular, los carriles del inicio se deslizan en horizontal. */
+@media (max-width: 640px) {
+  .game-grid--rail {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-auto-columns: 74%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    margin-inline: calc(var(--gutter) * -1);
+    padding: 4px var(--gutter) 12px;
+    scroll-padding-inline: var(--gutter);
+    scrollbar-width: none;
+  }
+
+  .game-grid--rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .game-grid--rail > * {
+    scroll-snap-align: start;
+  }
+
+  .game-grid--rail .game-card__scores {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

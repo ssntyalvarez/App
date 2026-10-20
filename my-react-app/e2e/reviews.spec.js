@@ -23,8 +23,9 @@ test.describe('opiniones con Firebase (emuladores)', () => {
     await page.getByRole('button', { name: 'Publicar opinión' }).click()
     await expect(page.getByText('¡Opinión publicada!')).toBeVisible()
     await expect(panel.getByText('1 voto de usuarios de Checkpoint')).toBeVisible()
-    await expect(page.locator('.review-list')).toContainText('No me convenció.')
-    await expect(page.locator('.review-list')).toContainText(user.name)
+    await expect(page.locator('.review-own')).toContainText('No me convenció.')
+    // La opinión propia no se repite en la lista de la comunidad.
+    await expect(page.getByText('Por ahora, la única opinión es la tuya')).toBeVisible()
 
     // Persistencia al recargar.
     await page.reload()
@@ -39,8 +40,7 @@ test.describe('opiniones con Firebase (emuladores)', () => {
     await expect(page.getByText('Tu opinión se actualizó.')).toBeVisible()
     await expect(page.locator('.score--community .score__value')).toContainText('9,0')
     await page.reload()
-    await expect(page.locator('.review-list')).toContainText('cambié de opinión')
-    await expect(page.locator('.review-list')).toContainText('editada')
+    await expect(page.locator('.review-own')).toContainText('cambié de opinión')
 
     // Aparece en el perfil.
     await page.goto(`/u/${user.handle}?tab=resenas`)

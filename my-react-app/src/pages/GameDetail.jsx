@@ -11,7 +11,7 @@ import { EmptyState, ErrorState, FirebasePending, Spinner } from '../components/
 import { useAuth } from '../context/AuthContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { formatReleased, rawgImage } from '../lib/format.js'
-import { useGame, useGameReviews, useScreenshots } from '../lib/hooks.js'
+import { useDocumentTitle, useGame, useGameReviews, useScreenshots } from '../lib/hooks.js'
 import { statsFromReviews } from '../lib/reviews.js'
 
 function Distribution({ reviews }) {
@@ -93,6 +93,7 @@ export default function GameDetail() {
   const game = useGame(validId ? id : null)
   const shots = useScreenshots(validId ? id : null)
   const reviews = useGameReviews(validId ? id : null)
+  useDocumentTitle(game.data?.name ?? (game.isError ? 'Juego no disponible' : 'Juego'))
 
   if (!validId || game.error?.code === 'not_found') {
     return (
@@ -123,6 +124,8 @@ export default function GameDetail() {
   const list = reviews.data ?? []
   const stats = statsFromReviews(list)
   const mine = user ? list.find((r) => r.uid === user.uid) : undefined
+  // La opinión propia se muestra en su tarjeta editable; la lista muestra las demás.
+  const others = mine ? list.filter((r) => r !== mine) : list
   const mcPlatforms = g.metacriticPlatforms ?? []
   const mainPlatform = mcPlatforms.length === 1 ? mcPlatforms[0].platform?.name : null
   const backdrop = rawgImage(g.image, 1280)
@@ -205,7 +208,7 @@ export default function GameDetail() {
               <>
                 <p className="muted">
                   {stats.votes
-                    ? `${stats.votes} ${stats.votes === 1 ? 'voto' : 'votos'} de usuarios de Checkpoint · escala 0–10`
+                    ? `${stats.votes} ${stats.votes === 1 ? 'voto' : 'votos'} de usuarios de Checkpoint`
                     : 'Todavía nadie lo puntuó. Escribí la primera opinión.'}
                 </p>
                 {stats.votes > 0 && <Distribution reviews={list} />}
@@ -215,12 +218,16 @@ export default function GameDetail() {
           </div>
 
           <div className="score-panel__item">
-            <h2 className="score-panel__title">Tu nota</h2>
+            <h2 className="score-panel__title">Tu nota <span>personal</span></h2>
             {user ? (
               <>
-                <PersonalScore score={mine?.score ?? null} label="Personal" size="lg" />
+                <PersonalScore score={mine?.score ?? null} size="lg" showLabel={false} />
                 <p className="muted">
-                  {mine ? 'La misma nota aparece en tu reseña y en tu perfil.' : 'Puntualo abajo, en Opiniones.'}
+                  {mine ? 'Es la misma nota de tu reseña y de tu perfil.' : (
+                    <>
+                      Todavía no lo puntuaste. <a href="#opiniones">Puntualo en Opiniones</a>.
+                    </>
+                  )}
                 </p>
               </>
             ) : (
@@ -275,8 +282,12 @@ export default function GameDetail() {
                 <ReviewForm key={mine ? `${mine.id}-${mine.updatedAt?.toMillis?.()}` : 'new'} game={g} existing={mine} />
               </div>
               <div className="reviews__list">
-                {list.length ? (
-                  <ReviewList reviews={list} currentUid={user?.uid} />
+                {others.length ? (
+                  <ReviewList reviews={others} currentUid={user?.uid} />
+                ) : mine ? (
+                  <EmptyState title="Por ahora, la única opinión es la tuya" icon="flag">
+                    <p>Cuando otras personas opinen, sus reseñas aparecerán acá.</p>
+                  </EmptyState>
                 ) : (
                   <EmptyState title="Todavía no hay opiniones" icon="flag">
                     <p>Escribí la primera y ayudá a otros a decidir.</p>

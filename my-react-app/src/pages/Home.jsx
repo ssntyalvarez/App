@@ -7,7 +7,7 @@ import { CardSkeletons, EmptyState, ErrorState, FirebasePending, Spinner } from 
 import { useAuth } from '../context/AuthContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { formatReleased, gamePath, rawgImage } from '../lib/format.js'
-import { useCommunityStats, useGames, useGenres, useRecentReviews } from '../lib/hooks.js'
+import { useCommunityStats, useDocumentTitle, useGames, useGenres, useRecentReviews } from '../lib/hooks.js'
 
 const iso = (d) => d.toISOString().slice(0, 10)
 const today = new Date()
@@ -114,6 +114,7 @@ export default function Home() {
   const topYear = useGames({ ordering: '-metacritic', dates: LAST_YEAR, pageSize: 8 })
   const classics = useGames({ ordering: '-metacritic', pageSize: 8 })
   const genres = useGenres()
+  useDocumentTitle(null)
 
   const featured = popular.data?.results.find((g) => g.image) ?? popular.data?.results[0]
   const rest = popular.data ? { ...popular, data: { results: popular.data.results.filter((g) => g !== featured).slice(0, 8) } } : popular

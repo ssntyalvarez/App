@@ -56,6 +56,8 @@ test.describe('catálogo (RAWG simulado con juegos ficticios)', () => {
     await page.goto('/')
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Juego de prueba')
     await page.getByRole('link', { name: 'Catálogo' }).first().click()
+    await expect(page).toHaveURL(/\/juegos$/)
+    await expect(page.getByRole('heading', { name: 'Explorá juegos' })).toBeVisible()
     await page.locator('.game-card').first().click()
     await expect(page).toHaveURL(/\/juego\/900001\/juego-de-prueba-1/)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Juego de prueba Alfa 1')
