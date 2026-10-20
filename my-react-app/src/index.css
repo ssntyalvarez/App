@@ -751,6 +751,7 @@ textarea {
   display: grid;
   gap: 6px;
   min-width: 0;
+  align-content: start;
 }
 
 .field label,
@@ -1619,6 +1620,11 @@ fieldset {
   .game-layout {
     grid-template-columns: 1fr;
     gap: 0;
+  }
+
+  /* En pantallas chicas, la biblioteca y la ficha quedan cerca de las puntuaciones. */
+  .game-layout__side {
+    order: -1;
   }
 }
 

@@ -5,7 +5,10 @@ Aplicación web para **descubrir videojuegos, comparar puntuaciones y opinar**, 
 - Catálogo real de **RAWG** (búsqueda, filtros por género, plataforma y año, orden y “Cargar más”).
 - Dos puntuaciones separadas: **Metacritic · vía RAWG** (0–100) y **Comunidad Checkpoint** (promedio 0–10 de las opiniones reales de esta app, con cantidad de votos).
 - Cuentas con **Firebase Authentication** (correo y contraseña) y opiniones guardadas en **Cloud Firestore**: crear, editar y eliminar, con una opinión por usuario y juego.
-- Perfiles públicos en `/u/<alias>`; biblioteca personal y perfiles personalizables en desarrollo (ver la [bitácora](docs/BITACORA.md)).
+- **Perfiles públicos** en `/u/<alias>` con portada, avatar, biografía, estadísticas, hasta 4 juegos destacados y grilla con filtros por estado.
+- **Biblioteca personal:** Quiero jugar, Jugando, Completado (con fecha opcional) y Abandonado; favoritos. La nota personal se toma siempre de la reseña del usuario.
+
+La evolución por iteraciones, las pruebas y las dificultades están en la [bitácora](docs/BITACORA.md).
 
 > Datos de juegos provistos por [RAWG](https://rawg.io). Las notas de Metacritic pueden variar según la plataforma o actualizarse.
 
@@ -26,6 +29,8 @@ Aplicación web para **descubrir videojuegos, comparar puntuaciones y opinar**, 
     │   ├── lib/firebase.js    # ← Conexión con Firebase (Auth + Firestore)
     │   ├── lib/reviews.js     # Operaciones de opiniones en Firestore
     │   ├── lib/profiles.js    # Perfiles públicos y alias
+    │   ├── lib/library.js     # Biblioteca personal, favoritos y destacados
+    │   ├── lib/image.js       # Compresión del avatar en el navegador
     │   ├── lib/rawg.js        # Cliente del proxy /api/rawg
     │   ├── lib/hooks.js       # Consultas con caché (React Query)
     │   ├── context/           # Sesión (AuthContext) y avisos (ToastContext)
@@ -76,7 +81,18 @@ Reiniciá `npm run dev` después de cambiar `.env`. En desarrollo, Vite atiende 
    ```
    Desplegar en Vercel **no** actualiza las reglas.
 
-No hace falta el plan Blaze ni Firebase Storage.
+No hace falta el plan Blaze ni Firebase Storage: el avatar se comprime en el navegador y se guarda dentro del perfil (máx. ~60 KB), y la portada es una imagen de RAWG.
+
+### Qué se guarda en Firestore
+
+| Colección | Contenido | Quién escribe |
+| --- | --- | --- |
+| `users/{uid}` | Perfil público: nombre, alias, bio, avatar, portada, destacados | Solo el dueño |
+| `handles/{alias}` | `{ uid }` para alias únicos y URLs de perfil | Solo el dueño |
+| `reviews/{gameId}_{uid}` | Puntuación 0–10, comentario y datos básicos del juego | Solo el autor |
+| `libraries/{uid}/games/{gameId}` | Estado, favorito, fecha de finalización y datos básicos del juego | Solo el dueño |
+
+Todo es de lectura pública; el correo y la contraseña quedan en Firebase Authentication y nunca se guardan en Firestore.
 
 ## Verificación
 
