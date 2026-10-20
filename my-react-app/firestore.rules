@@ -1,0 +1,107 @@
+rules_version = '2';
+
+// Reglas de Cloud Firestore para Checkpoint.
+// Se publican en Firebase (Firestore → Reglas) o con `npx firebase deploy --only firestore:rules`.
+// Desplegar en Vercel NO las actualiza.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validHandle(h) {
+      return h is string && h.matches('^[a-z0-9_]{3,20}$');
+    }
+
+    // ---------- Perfiles públicos ----------
+    // users/{uid}: solo datos públicos. El correo y los datos de autenticación
+    // quedan en Firebase Authentication y nunca se guardan aquí.
+    function validProfile(d) {
+      return d.keys().hasOnly(['displayName', 'handle', 'createdAt', 'updatedAt'])
+        && d.displayName is string && d.displayName.size() >= 1 && d.displayName.size() <= 40
+        && validHandle(d.handle)
+        && d.updatedAt == request.time;
+    }
+
+    match /users/{uid} {
+      allow read: if true;
+
+      allow create: if isOwner(uid)
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        // El alias debe reservarse en la misma operación.
+        && getAfter(/databases/$(database)/documents/handles/$(request.resource.data.handle)).data.uid == uid;
+
+      allow update: if isOwner(uid)
+        && validProfile(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && (
+          request.resource.data.handle == resource.data.handle
+          || (
+            getAfter(/databases/$(database)/documents/handles/$(request.resource.data.handle)).data.uid == uid
+            && !existsAfter(/databases/$(database)/documents/handles/$(resource.data.handle))
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // handles/{handle}: reserva de alias únicos → { uid }.
+    match /handles/{handle} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && validHandle(handle)
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.handle == handle;
+
+      // Solo se libera un alias propio cuando el perfil ya usa otro.
+      allow delete: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.handle != handle;
+
+      allow update: if false;
+    }
+
+    // ---------- Reseñas ----------
+    // reviews/{gameId}_{uid}: el id determinista garantiza una reseña por usuario y juego.
+    function validReview(d) {
+      return d.keys().hasOnly(['uid', 'gameId', 'gameName', 'gameSlug', 'gameImage', 'score', 'text', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['uid', 'gameId', 'gameName', 'score', 'text', 'createdAt', 'updatedAt'])
+        && d.gameId is string && d.gameId.matches('^[0-9]{1,9}$')
+        && d.gameName is string && d.gameName.size() >= 1 && d.gameName.size() <= 200
+        && (!('gameSlug' in d) || (d.gameSlug is string && d.gameSlug.size() <= 120))
+        && (!('gameImage' in d) || d.gameImage == null
+            || (d.gameImage is string && d.gameImage.size() <= 400 && d.gameImage.matches('^https://media[.]rawg[.]io/.*')))
+        // 0 es una puntuación válida.
+        && d.score is int && d.score >= 0 && d.score <= 10
+        && d.text is string && d.text.size() <= 2000
+        && d.updatedAt == request.time;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && validReview(request.resource.data)
+        && request.resource.data.uid == request.auth.uid
+        && reviewId == request.resource.data.gameId + '_' + request.auth.uid
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && validReview(request.resource.data)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.gameId == resource.data.gameId
+        && request.resource.data.createdAt == resource.data.createdAt;
+
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+  }
+}
