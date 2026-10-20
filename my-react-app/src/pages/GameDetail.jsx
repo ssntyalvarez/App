@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { PlatformList } from '../components/GameCard.jsx'
 import Gallery from '../components/Gallery.jsx'
+import LibraryControl from '../components/LibraryControl.jsx'
 import GameImage from '../components/GameImage.jsx'
 import ReviewForm from '../components/ReviewForm.jsx'
 import ReviewList from '../components/ReviewList.jsx'
@@ -46,6 +47,14 @@ function Description({ text }) {
   )
 }
 
+function hostname(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}
+
 function Facts({ game }) {
   const rows = [
     ['Lanzamiento', formatReleased(game.released, game.tba)],
@@ -68,7 +77,7 @@ function Facts({ game }) {
           <dt>Sitio oficial</dt>
           <dd>
             <a href={game.website} target="_blank" rel="noopener noreferrer">
-              {new URL(game.website).hostname.replace(/^www\./, '')}
+              {hostname(game.website)}
             </a>
           </dd>
         </div>
@@ -197,7 +206,7 @@ export default function GameDetail() {
                 <p className="muted">
                   {stats.votes
                     ? `${stats.votes} ${stats.votes === 1 ? 'voto' : 'votos'} de usuarios de Checkpoint · escala 0–10`
-                    : 'Todavía nadie lo puntuó. ¡Podés ser la primera opinión!'}
+                    : 'Todavía nadie lo puntuó. Escribí la primera opinión.'}
                 </p>
                 {stats.votes > 0 && <Distribution reviews={list} />}
               </>
@@ -241,6 +250,7 @@ export default function GameDetail() {
             </section>
           </div>
           <aside className="game-layout__side">
+            {firebaseReady && <LibraryControl game={g} />}
             <section className="panel">
               <h2 className="panel__title">Ficha</h2>
               <Facts game={g} />

@@ -6,6 +6,7 @@ import { fetchGame, fetchGames, fetchGenres, fetchPlatforms, fetchScreenshots } 
 import { firebaseReady } from './firebase.js'
 import { getCommunityStats, listGameReviews, listRecentReviews, listUserReviews } from './reviews.js'
 import { getProfile, getProfileByHandle } from './profiles.js'
+import { listLibrary } from './library.js'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -111,4 +112,17 @@ export function useProfileByHandle(handle) {
     queryFn: () => getProfileByHandle(handle),
     enabled: firebaseReady && !!handle,
   })
+}
+
+export function useLibrary(uid) {
+  return useQuery({
+    queryKey: ['library', uid],
+    queryFn: () => listLibrary(uid),
+    enabled: firebaseReady && !!uid,
+  })
+}
+
+export function invalidateProfileData(queryClient) {
+  queryClient.invalidateQueries({ queryKey: ['profile'] })
+  queryClient.invalidateQueries({ queryKey: ['profile-handle'] })
 }

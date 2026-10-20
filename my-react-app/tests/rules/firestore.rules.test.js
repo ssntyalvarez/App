@@ -132,3 +132,61 @@ describe('reseñas', () => {
     await assertFails(updateDoc(doc(as('ana'), 'reviews', '3498_ana'), { gameId: '1', updatedAt: serverTimestamp() }))
   })
 })
+
+describe('perfil personalizable', () => {
+  const tinyJpeg = 'data:image/jpeg;base64,' + 'A'.repeat(2000)
+
+  it('acepta bio, avatar, portada de RAWG y hasta 4 destacados', async () => {
+    await createProfile(as('ana'), 'ana', 'ana_g')
+    await assertSucceeds(updateDoc(doc(as('ana'), 'users', 'ana'), {
+      bio: 'Fan de los metroidvania.', avatar: tinyJpeg,
+      coverUrl: 'https://media.rawg.io/media/games/x.jpg', featured: ['1', '2', '3', '4'], updatedAt: serverTimestamp(),
+    }))
+  })
+
+  it('rechaza bio larga, avatar no imagen o enorme, portada externa y más de 4 destacados', async () => {
+    await createProfile(as('ana'), 'ana', 'ana_g')
+    const ref = doc(as('ana'), 'users', 'ana')
+    const upd = (data) => updateDoc(ref, { ...data, updatedAt: serverTimestamp() })
+    await assertFails(upd({ bio: 'x'.repeat(161) }))
+    await assertFails(upd({ avatar: 'https://evil.example/a.png' }))
+    await assertFails(upd({ avatar: 'data:text/html;base64,PHNjcmlwdD4=' }))
+    await assertFails(upd({ avatar: 'data:image/jpeg;base64,' + 'A'.repeat(80001) }))
+    await assertFails(upd({ coverUrl: 'https://evil.example/cover.jpg' }))
+    await assertFails(upd({ featured: ['1', '2', '3', '4', '5'] }))
+  })
+})
+
+describe('biblioteca personal', () => {
+  const entry = (extra = {}) => ({
+    gameId: '3498', name: 'Grand Theft Auto V', slug: 'gta-v', image: 'https://media.rawg.io/media/games/a.jpg',
+    released: '2013-09-17', status: 'want', favorite: false, finishedAt: null,
+    addedAt: serverTimestamp(), updatedAt: serverTimestamp(), ...extra,
+  })
+
+  it('es pública para lectura', async () => {
+    await setDoc(doc(as('ana'), 'libraries/ana/games/3498'), entry())
+    await assertSucceeds(getDoc(doc(anon(), 'libraries/ana/games/3498')))
+  })
+
+  it('cada usuario solo modifica su biblioteca', async () => {
+    await assertSucceeds(setDoc(doc(as('ana'), 'libraries/ana/games/3498'), entry()))
+    await assertFails(setDoc(doc(as('beto'), 'libraries/ana/games/1'), entry({ gameId: '1' })))
+    await assertFails(updateDoc(doc(as('beto'), 'libraries/ana/games/3498'), { status: 'abandoned', updatedAt: serverTimestamp() }))
+    await assertFails(deleteDoc(doc(as('beto'), 'libraries/ana/games/3498')))
+    await assertSucceeds(deleteDoc(doc(as('ana'), 'libraries/ana/games/3498')))
+  })
+
+  it('valida estado, coherencia del id y fecha de finalización', async () => {
+    const ref = doc(as('ana'), 'libraries/ana/games/3498')
+    await assertFails(setDoc(ref, entry({ status: 'terminado' })))
+    await assertFails(setDoc(ref, entry({ gameId: '1' })))
+    await assertFails(setDoc(ref, entry({ status: 'playing', finishedAt: '2024-01-01' })))
+    await assertFails(setDoc(ref, entry({ status: 'completed', finishedAt: 'ayer' })))
+    await assertSucceeds(setDoc(ref, entry({ status: 'completed', finishedAt: '2024-01-01' })))
+  })
+
+  it('no admite una puntuación en la biblioteca (la nota vive en la reseña)', async () => {
+    await assertFails(setDoc(doc(as('ana'), 'libraries/ana/games/3498'), entry({ score: 10 })))
+  })
+})

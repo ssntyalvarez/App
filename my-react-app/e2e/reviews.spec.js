@@ -43,8 +43,8 @@ test.describe('opiniones con Firebase (emuladores)', () => {
     await expect(page.locator('.review-list')).toContainText('editada')
 
     // Aparece en el perfil.
-    await page.goto(`/u/${user.handle}`)
-    await expect(page.getByText('Juego de prueba Charlie 3')).toBeVisible()
+    await page.goto(`/u/${user.handle}?tab=resenas`)
+    await expect(page.locator('.profile-review')).toContainText('Juego de prueba Charlie 3')
 
     // Eliminar.
     await page.goto(GAME)

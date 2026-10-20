@@ -21,10 +21,23 @@ service cloud.firestore {
     // ---------- Perfiles públicos ----------
     // users/{uid}: solo datos públicos. El correo y los datos de autenticación
     // quedan en Firebase Authentication y nunca se guardan aquí.
+    function isRawgImage(v) {
+      return v is string && v.size() <= 400 && v.matches('^https://media[.]rawg[.]io/.*');
+    }
+
     function validProfile(d) {
-      return d.keys().hasOnly(['displayName', 'handle', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['displayName', 'handle', 'bio', 'avatar', 'coverUrl', 'featured', 'createdAt', 'updatedAt'])
         && d.displayName is string && d.displayName.size() >= 1 && d.displayName.size() <= 40
         && validHandle(d.handle)
+        && (!('bio' in d) || (d.bio is string && d.bio.size() <= 160))
+        // Avatar: imagen pequeña comprimida en el navegador (data URL) o vacío.
+        && (!('avatar' in d) || d.avatar == ''
+            || (d.avatar is string && d.avatar.size() <= 80000
+                && d.avatar.matches('^data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$')))
+        // Portada: una imagen del catálogo de RAWG o vacío.
+        && (!('coverUrl' in d) || d.coverUrl == '' || isRawgImage(d.coverUrl))
+        // Hasta cuatro juegos destacados (ids de RAWG).
+        && (!('featured' in d) || (d.featured is list && d.featured.size() <= 4))
         && d.updatedAt == request.time;
     }
 
@@ -77,8 +90,7 @@ service cloud.firestore {
         && d.gameId is string && d.gameId.matches('^[0-9]{1,9}$')
         && d.gameName is string && d.gameName.size() >= 1 && d.gameName.size() <= 200
         && (!('gameSlug' in d) || (d.gameSlug is string && d.gameSlug.size() <= 120))
-        && (!('gameImage' in d) || d.gameImage == null
-            || (d.gameImage is string && d.gameImage.size() <= 400 && d.gameImage.matches('^https://media[.]rawg[.]io/.*')))
+        && (!('gameImage' in d) || d.gameImage == null || isRawgImage(d.gameImage))
         // 0 es una puntuación válida.
         && d.score is int && d.score >= 0 && d.score <= 10
         && d.text is string && d.text.size() <= 2000
@@ -102,6 +114,39 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt;
 
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // ---------- Biblioteca personal ----------
+    // libraries/{uid}/games/{gameId}: estado de cada juego en la biblioteca.
+    // No guarda puntuación: la nota personal sale siempre de reviews (una sola fuente).
+    function validLibraryEntry(d, gameId) {
+      return d.keys().hasOnly(['gameId', 'name', 'slug', 'image', 'released', 'status', 'favorite', 'finishedAt', 'addedAt', 'updatedAt'])
+        && d.keys().hasAll(['gameId', 'name', 'status', 'favorite', 'addedAt', 'updatedAt'])
+        && d.gameId == gameId && gameId.matches('^[0-9]{1,9}$')
+        && d.name is string && d.name.size() >= 1 && d.name.size() <= 200
+        && (!('slug' in d) || (d.slug is string && d.slug.size() <= 120))
+        && (!('image' in d) || d.image == null || isRawgImage(d.image))
+        && (!('released' in d) || d.released == null || (d.released is string && d.released.size() <= 10))
+        && d.status in ['want', 'playing', 'completed', 'abandoned']
+        && d.favorite is bool
+        // La fecha de finalización es opcional y solo tiene sentido si está completado.
+        && (!('finishedAt' in d) || d.finishedAt == null
+            || (d.status == 'completed' && d.finishedAt is string && d.finishedAt.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
+        && d.updatedAt == request.time;
+    }
+
+    match /libraries/{uid}/games/{gameId} {
+      allow read: if true;
+
+      allow create: if isOwner(uid)
+        && validLibraryEntry(request.resource.data, gameId)
+        && request.resource.data.addedAt == request.time;
+
+      allow update: if isOwner(uid)
+        && validLibraryEntry(request.resource.data, gameId)
+        && request.resource.data.addedAt == resource.data.addedAt;
+
+      allow delete: if isOwner(uid);
     }
   }
 }

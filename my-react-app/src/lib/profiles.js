@@ -8,7 +8,9 @@ export function normalizeHandle(value) {
   return value.trim().toLowerCase().replace(/^@/, '')
 }
 
-export function validateProfileFields({ displayName, handle }) {
+export const MAX_BIO = 160
+
+export function validateProfileFields({ displayName, handle, bio = '' }) {
   const errors = {}
   const name = displayName.trim()
   if (!name) errors.displayName = 'Ingresá un nombre visible.'
@@ -16,6 +18,7 @@ export function validateProfileFields({ displayName, handle }) {
   if (!HANDLE_PATTERN.test(handle)) {
     errors.handle = 'Entre 3 y 20 caracteres: minúsculas, números o guion bajo.'
   }
+  if (bio.length > MAX_BIO) errors.bio = `Máximo ${MAX_BIO} caracteres.`
   return errors
 }
 
@@ -43,6 +46,10 @@ export async function createProfile(uid, { displayName, handle }) {
   batch.set(doc(db, 'users', uid), {
     displayName: displayName.trim(),
     handle,
+    bio: '',
+    avatar: '',
+    coverUrl: '',
+    featured: [],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
