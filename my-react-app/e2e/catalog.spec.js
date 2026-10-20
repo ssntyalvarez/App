@@ -71,7 +71,7 @@ test.describe('catálogo (RAWG simulado con juegos ficticios)', () => {
 
   test('sin clave de RAWG se muestra “pendiente de conexión”', async ({ page }) => {
     await page.goto('/juegos')
-    await expect(page.getByText('Catálogo pendiente de conexión')).toBeVisible()
+    await expect(page.getByText('Catálogo de juegos sin conectar')).toBeVisible()
   })
 
   test('@mobile catálogo y menú en pantalla chica', async ({ page }) => {

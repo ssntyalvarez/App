@@ -42,7 +42,7 @@ export function MetacriticScore({ score, platform, size = 'md', showLabel = true
 // Promedio de la comunidad Checkpoint (0–10) con su cantidad de votos.
 export function CommunityScore({ stats, loading, size = 'md', showLabel = true, unavailable = false }) {
   let value = '–'
-  let detail = 'Sin votos todavía'
+  let detail = 'Sin votos'
   let dataTier
   if (unavailable) detail = 'Pendiente de conexión'
   else if (loading) detail = 'Cargando…'

@@ -1379,6 +1379,69 @@ fieldset {
   }
 }
 
+.intro {
+  display: grid;
+  gap: 20px;
+  padding-block: clamp(40px, 8vw, 96px) 24px;
+}
+
+.intro__title {
+  font-size: clamp(2.6rem, 7vw, 5.6rem);
+  font-weight: 800;
+  font-stretch: 78%;
+  line-height: 0.95;
+  text-transform: uppercase;
+  max-width: 14ch;
+}
+
+.intro__title span {
+  color: var(--lime);
+}
+
+.intro__lead {
+  max-width: 58ch;
+  color: var(--text-soft);
+  font-size: 1.1rem;
+}
+
+.intro__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
+.intro__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.legend-mark {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.legend-mark--mc {
+  border-radius: 5px;
+  background: var(--lime);
+}
+
+.legend-mark--community {
+  border-radius: 50%;
+  border: 2.5px solid var(--lime);
+}
+
+.legend-mark--personal {
+  border-radius: 5px;
+  border: 2px solid var(--text);
+}
+
 .game-grid--rail {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -2871,10 +2934,32 @@ fieldset {
 @media (max-width: 860px) {
   .auth {
     grid-template-columns: 1fr;
+    min-height: 0;
   }
 
+  /* En celular se conserva una franja compacta con la identidad de la marca. */
   .auth__art {
+    padding: 28px var(--gutter);
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .auth__art-inner {
+    gap: 14px;
+  }
+
+  .auth__art .logo,
+  .auth__points {
     display: none;
+  }
+
+  .auth__quote {
+    font-size: 1.7rem;
+  }
+
+  .auth__panel {
+    place-items: start center;
+    padding-top: 28px;
   }
 }
 

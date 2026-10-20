@@ -8,7 +8,9 @@ Aplicación web para **descubrir videojuegos, comparar puntuaciones y opinar**, 
 - **Perfiles públicos** en `/u/<alias>` con portada, avatar, biografía, estadísticas, hasta 4 juegos destacados y grilla con filtros por estado.
 - **Biblioteca personal:** Quiero jugar, Jugando, Completado (con fecha opcional) y Abandonado; favoritos. La nota personal se toma siempre de la reseña del usuario.
 
-La evolución por iteraciones, las pruebas y las dificultades están en la [bitácora](docs/BITACORA.md).
+La evolución por iteraciones, las pruebas, las dificultades y la justificación del diseño están en la [bitácora](docs/BITACORA.md).
+
+> **Estado actual:** la app está lista para conectarse, pero todavía no tiene clave de RAWG ni proyecto de Firebase ni despliegue en Vercel. Todo se verificó con los emuladores de Firebase y un doble de prueba de RAWG (ver “Verificación”).
 
 > Datos de juegos provistos por [RAWG](https://rawg.io). Las notas de Metacritic pueden variar según la plataforma o actualizarse.
 
@@ -101,12 +103,22 @@ npm run lint         # Oxlint
 npm run build        # Build de producción → dist/
 npm test             # Pruebas unitarias del proxy de RAWG
 npm run test:rules   # Reglas de Firestore en el emulador (requiere Java)
-npm run test:e2e     # Playwright + emuladores de Auth y Firestore
+npm run test:e2e     # Playwright + emuladores de Auth y Firestore (incluye auditoría de accesibilidad con axe)
 ```
 
 - Las pruebas de punta a punta usan los **emuladores** de Firebase (no tocan el proyecto real) y reemplazan RAWG en el navegador por un **doble de prueba con juegos ficticios** (`e2e/rawg-fixture.js`).
 - Si Playwright no encuentra su navegador, instalalo con `npx playwright install chromium` o indicá uno existente con `CHROMIUM_PATH=/ruta/a/chrome`.
 - `npm run emulators` levanta Auth + Firestore locales; con `VITE_USE_FIREBASE_EMULATORS=true` en `.env`, `npm run dev` se conecta a ellos.
+
+## Dónde se conecta Firebase (para la demostración)
+
+- **Inicialización:** `src/lib/firebase.js` lee las variables `VITE_FIREBASE_*` con `import.meta.env` y crea `auth` y `db`.
+- **Sesión:** `src/context/AuthContext.jsx` (registro, ingreso y cierre con Firebase Auth; perfil escuchado en tiempo real con `onSnapshot`).
+- **Consultar:** `listGameReviews`, `getCommunityStats` (agregación `count` + `average`) y `listUserReviews` en `src/lib/reviews.js`; `listLibrary` en `src/lib/library.js`.
+- **Agregar:** `saveReview` (`setDoc` en `reviews/{gameId}_{uid}`) y `addToLibrary`.
+- **Modificar:** `saveReview` con una reseña existente (`updateDoc`), `updateLibraryEntry` (estado/fecha), `setFavorite`, `setFeatured`, `updateProfile`.
+- **Eliminar:** `deleteReview` y `removeFromLibrary`.
+- **Permisos:** `firestore.rules` (probadas en `tests/rules/firestore.rules.test.js`).
 
 ## Despliegue en Vercel
 

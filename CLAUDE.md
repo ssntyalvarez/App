@@ -22,7 +22,7 @@ npm run emulators    # Emuladores locales (usar con VITE_USE_FIREBASE_EMULATORS=
 ```
 
 Antes de commitear: `lint`, `build`, `test`, `test:rules` y `test:e2e`.
-Capturas para la bitácora: `EVIDENCIAS=<carpeta absoluta> npx firebase emulators:exec --only auth,firestore --project demo-checkpoint "npx playwright test e2e/evidencias.spec.js"`.
+Las evidencias nuevas se guardan como JPEG reducidas en `docs/evidencias/iteracion-N/`. Capturas para la bitácora: `EVIDENCIAS=<carpeta absoluta> npx firebase emulators:exec --only auth,firestore --project demo-checkpoint "npx playwright test e2e/evidencias.spec.js"`.
 
 ## Arquitectura
 
@@ -31,6 +31,7 @@ Capturas para la bitácora: `EVIDENCIAS=<carpeta absoluta> npx firebase emulator
 - Firestore: `users/{uid}` (perfil público, sin correo), `handles/{handle}` → `{uid}` (alias únicos), `reviews/{gameId}_{uid}` (una opinión por usuario y juego; `score` entero 0–10, `text` ≤ 2000), `libraries/{uid}/games/{gameId}` (estado want|playing|completed|abandoned, `favorite`, `finishedAt` solo si completed; **sin puntuación**: la nota personal sale de `reviews`). `users.featured` ≤ 4 ids (favoritos destacados); avatar = data URL comprimida en el navegador (sin Storage), portada = URL de `media.rawg.io`. El promedio de la comunidad se calcula con las opiniones reales (agregación `count/average` o la lista cargada). Reglas en `firestore.rules`, probadas en `tests/rules`.
 - Datos remotos con React Query (`src/lib/hooks.js`); tras mutar opiniones usar `invalidateReviewData`; acciones de biblioteca en `src/lib/libraryActions.js` (con actualización optimista).
 - `firebase` fijado en `^12` (lo exige `@firebase/rules-unit-testing`) y `overrides` de `@firebase/app` para evitar copias duplicadas.
+- Rutas con carga diferida (`lazy` en `src/App.jsx`); `vite.config.js` separa bloques `react`, `firebase` y `firestore`.
 - Estilos: `src/index.css` con tokens (grafito, blanco cálido, acento lima `--lime`). Tres tipos de puntuación con formas distintas: Metacritic (cuadrado 0–100), Comunidad (círculo 0–10 + votos), Personal (etiqueta “x/10” o “Sin puntuar”).
 
 ## Reglas de trabajo

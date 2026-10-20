@@ -45,6 +45,30 @@ function Featured({ game }) {
   )
 }
 
+// Presentación de marca cuando no hay un juego destacado para mostrar (sin datos inventados).
+function Intro() {
+  return (
+    <section className="intro container" aria-labelledby="intro-title">
+      <p className="eyebrow">Checkpoint</p>
+      <h1 id="intro-title" className="intro__title">
+        Descubrí, puntuá <span>y compartí</span> videojuegos.
+      </h1>
+      <p className="intro__lead">
+        Compará la nota de Metacritic con la de la comunidad, armá tu biblioteca y mostrá tus favoritos en un perfil propio.
+      </p>
+      <ul className="intro__legend" aria-label="Cómo leer las puntuaciones">
+        <li><span className="legend-mark legend-mark--mc" aria-hidden="true" />Metacritic · 0 a 100</li>
+        <li><span className="legend-mark legend-mark--community" aria-hidden="true" />Comunidad Checkpoint · 0 a 10</li>
+        <li><span className="legend-mark legend-mark--personal" aria-hidden="true" />Tu nota · 0 a 10</li>
+      </ul>
+      <div className="row">
+        <Link to="/juegos" className="btn btn--primary btn--lg">Explorar el catálogo</Link>
+        <Link to="/registro" className="btn btn--ghost btn--lg">Crear cuenta</Link>
+      </div>
+    </section>
+  )
+}
+
 function Rail({ title, subtitle, query, link }) {
   return (
     <section className="section container rail">
@@ -126,15 +150,15 @@ export default function Home() {
           <div className="container"><Spinner label="Cargando destacados…" /></div>
         </div>
       )}
-      {popular.isError && (
-        <div className="container page">
-          <ErrorState error={popular.error} onRetry={() => popular.refetch()} />
-        </div>
-      )}
       {featured ? (
         <Featured game={featured} />
       ) : (
-        <h1 className="sr-only">Checkpoint: descubrí, puntuá y compartí videojuegos</h1>
+        !popular.isPending && <Intro />
+      )}
+      {popular.isError && (
+        <div className="container">
+          <ErrorState error={popular.error} onRetry={() => popular.refetch()} />
+        </div>
       )}
 
       {!popular.isError && (

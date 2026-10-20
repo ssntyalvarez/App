@@ -115,7 +115,7 @@ export default function GameDetail() {
   if (game.isError) {
     return (
       <div className="page container">
-        <ErrorState error={game.error} onRetry={() => game.refetch()} />
+        <ErrorState error={game.error} onRetry={() => game.refetch()} backHome />
       </div>
     )
   }

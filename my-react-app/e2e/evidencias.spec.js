@@ -7,7 +7,18 @@ import { mockRawg } from './rawg-fixture.js'
 const dir = process.env.EVIDENCIAS
 test.skip(!dir, 'Definí EVIDENCIAS=carpeta para generar capturas')
 
-const shot = (page, name) => page.screenshot({ path: `${dir}/${name}-${test.info().project.name}.png`, fullPage: true })
+async function shot(page, name) {
+  // Recorre la página para que carguen las imágenes diferidas (loading="lazy").
+  await page.evaluate(async () => {
+    for (let y = 0; y < document.body.scrollHeight; y += 500) {
+      window.scrollTo(0, y)
+      await new Promise((r) => setTimeout(r, 60))
+    }
+    window.scrollTo(0, 0)
+  })
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: `${dir}/${name}-${test.info().project.name}.png`, fullPage: true })
+}
 const settle = (page) => page.waitForTimeout(700)
 
 async function review(page, n, score, text) {

@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { firebaseMissingVars } from '../lib/firebase.js'
 
 export function Spinner({ label = 'Cargando…' }) {
@@ -45,16 +46,19 @@ export function EmptyState({ title, children, action, icon = 'search' }) {
   )
 }
 
-export function ErrorState({ error, onRetry, title = 'No pudimos cargar la información' }) {
+export function ErrorState({ error, onRetry, title = 'No pudimos cargar la información', backHome = false }) {
   const missingKey = error?.code === 'missing_key'
   return (
     <div className={`state state--error ${missingKey ? 'state--pending' : ''}`} role="alert">
-      <h3>{missingKey ? 'Catálogo pendiente de conexión' : title}</h3>
+      <h3>{missingKey ? 'Catálogo de juegos sin conectar' : title}</h3>
       <p className="state__text">
         {missingKey
           ? 'El servidor todavía no tiene configurada la clave de RAWG (RAWG_API_KEY). Cuando se configure, el catálogo real aparecerá aquí.'
           : error?.message || 'Ocurrió un error inesperado.'}
       </p>
+      {missingKey && backHome && (
+        <Link to="/" className="btn btn--ghost">Volver al inicio</Link>
+      )}
       {onRetry && !missingKey && (
         <button type="button" className="btn btn--ghost" onClick={onRetry}>
           Reintentar
@@ -67,7 +71,7 @@ export function ErrorState({ error, onRetry, title = 'No pudimos cargar la infor
 export function FirebasePending() {
   return (
     <div className="state state--pending" role="note">
-      <h3>Cuentas y opiniones pendientes de conexión</h3>
+      <h3>Cuentas y opiniones sin conectar</h3>
       <p className="state__text">
         Falta la configuración de Firebase ({firebaseMissingVars.join(', ')}). Hasta que se complete, no es posible
         registrarse ni publicar opiniones. No se muestran datos simulados.

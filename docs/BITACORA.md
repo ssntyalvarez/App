@@ -98,7 +98,51 @@ Instrucción representativa: “Diferenciá claramente la puntuación personal d
 
 ---
 
-## Pendiente de conexión (al cierre de la iteración 1)
-- Crear el proyecto de Firebase, habilitar correo/contraseña, crear Firestore y publicar `firestore.rules`.
-- Obtener la clave de RAWG.
-- Publicar en Vercel (requiere autorización del responsable del proyecto) y repetir las pruebas sobre la URL publicada.
+## Iteración 3 — Versión final con refinamiento visual
+
+**Fecha:** 20/10/2026 · **Commits:** `65d2ce3` (avance) y el cierre de la iteración 3.
+
+### Cambios (a partir de la revisión de las capturas renderizadas)
+- **Ficha:** la opinión propia aparecía dos veces (tarjeta “Tu opinión” y lista); ahora la lista muestra solo las demás, con un estado vacío propio (“Por ahora, la única opinión es la tuya”). El panel “Tu nota” se rediseñó con una caja de contorno blanco, distinta del cuadrado de Metacritic y del círculo de la comunidad. Se acortó el texto de votos que se cortaba en “escala 0–10”.
+- **Inicio:** en celular los carriles pasan a deslizarse en horizontal (con ajuste por tarjeta) en lugar de apilar 24 tarjetas. Si no hay un juego destacado (por ejemplo, sin clave de RAWG), se muestra una presentación de marca con la leyenda de las tres puntuaciones, sin datos inventados.
+- **Registro e ingreso en celular:** se conserva una franja con la frase de marca en lugar de ocultar todo el panel visual.
+- **Estados “sin conectar”:** se quitó la redundancia “Pendiente · …pendiente de conexión” y la ficha ofrece volver al inicio.
+- **Rendimiento:** páginas con carga diferida y bloques separados para React, Firebase y Firestore; desapareció la advertencia de paquetes > 500 kB (el bloque principal pasó de 1 012 kB a 44 kB + bibliotecas cacheables). Barra de progreso mientras se descarga una página.
+- **Accesibilidad:** título de pestaña por página, pestañas del perfil con flechas del teclado y `tabIndex` según el patrón ARIA, y auditoría automática con axe (WCAG 2.1 AA, incluye contraste).
+
+### Pruebas realizadas
+| Prueba | Resultado |
+| --- | --- |
+| `npm run lint` / `npm run build` | Sin advertencias / correcto, sin avisos de tamaño |
+| `npm test` (proxy de RAWG) | 15/15 |
+| `npm run test:rules` | 22/22 |
+| `npm run test:e2e` (incluye auditoría axe de inicio, catálogo, ficha, ingreso, registro y perfil) | 16/16 |
+| Función `api/rawg.js` ejecutada con `Request` reales: sin clave → 503 `missing_key`; recurso no permitido → 404; clave inválida contra RAWG real → 502 `bad_key` | Correcto |
+
+### Evidencias
+| Inicio sin conexión (lo que se ve sin `.env`) | Ficha final | Registro en celular |
+| --- | --- | --- |
+| ![Inicio sin conexión](evidencias/iteracion-3/00-inicio-sin-conexion-desktop.jpg) | ![Ficha](evidencias/iteracion-3/04-ficha-desktop.jpg) | ![Registro](evidencias/iteracion-3/03-registro-mobile.jpg) |
+
+| Inicio en celular | Perfil final | Perfil en celular |
+| --- | --- | --- |
+| ![Inicio celular](evidencias/iteracion-3/01-inicio-mobile.jpg) | ![Perfil](evidencias/iteracion-3/06-perfil-desktop.jpg) | ![Perfil celular](evidencias/iteracion-3/06-perfil-mobile.jpg) |
+
+### Dificultades y soluciones
+1. **Carga diferida y pruebas.** Al dividir el código, una prueba hizo clic en una tarjeta del inicio mientras se descargaba el catálogo, porque la página anterior seguía visible. Se agregó una barra de progreso de navegación (`useNavigation`) y la prueba ahora espera la nueva página.
+2. **Capturas con imágenes vacías.** Las capturas de página completa no disparaban la carga diferida (`loading="lazy"`); el script ahora recorre la página antes de capturar.
+3. **Peso de las evidencias.** Las capturas PNG de celular superaban los 10 000 px de alto; desde esta iteración se guardan como JPEG reducidas.
+
+### Justificación del diseño final
+- **Grafito + blanco cálido** dan un fondo calmo para que las imágenes de los juegos sean protagonistas; el **lima** se reserva para acciones principales, foco visible y notas altas, para que no compita con las portadas.
+- **Bricolage Grotesque condensada en mayúsculas** para títulos (carácter “de caja de juego”), **Geist** para lectura y **Geist Mono** para números, lo que hace que las notas se alineen y se comparen fácilmente.
+- **Una forma por tipo de nota** (cuadrado sólido = Metacritic 0–100, círculo = comunidad 0–10, caja de contorno = nota personal) para que se distingan aun sin leer la etiqueta; el color (lima/ámbar/coral) refuerza el rango, pero siempre hay texto.
+- **Estados honestos:** cuando falta un servicio se dice qué falta y no se rellena con datos de ejemplo.
+
+---
+
+## Configuración pendiente (al cierre de la iteración 3)
+- **Firebase:** crear el proyecto, habilitar *Correo electrónico/contraseña*, crear Firestore y publicar `firestore.rules`; cargar las cuatro variables `VITE_FIREBASE_*`.
+- **RAWG:** obtener la clave y configurarla como `RAWG_API_KEY` (servidor).
+- **Vercel:** importar el repositorio con Root Directory `my-react-app`, cargar las variables y desplegar (requiere autorización del responsable). Luego agregar el dominio de Vercel en *Authentication → Dominios autorizados* y repetir las pruebas sobre la URL publicada (agregar, consultar, modificar, eliminar, recargar y celular).
+- Hasta entonces, **ninguna prueba se hizo contra el proyecto real de Firebase ni con datos reales de RAWG**: todo lo anterior se verificó con emuladores y un doble de prueba.
