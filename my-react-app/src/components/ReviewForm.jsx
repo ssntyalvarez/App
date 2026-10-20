@@ -3,16 +3,11 @@ import { Link, useLocation } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
+import { invalidateReviewData } from '../lib/hooks.js'
 import { firestoreMessage } from '../lib/profiles.js'
 import { MAX_REVIEW_LENGTH, deleteReview, saveReview, validateReview } from '../lib/reviews.js'
 
 const SCORES = Array.from({ length: 11 }, (_, i) => i)
-
-export function invalidateReviewData(queryClient, gameId, uid) {
-  queryClient.invalidateQueries({ queryKey: ['reviews'] })
-  queryClient.invalidateQueries({ queryKey: ['stats', String(gameId)] })
-  if (uid) queryClient.invalidateQueries({ queryKey: ['library', uid] })
-}
 
 export default function ReviewForm({ game, existing }) {
   const { user, profile } = useAuth()

@@ -1,12 +1,12 @@
 import { Link } from 'react-router'
-import GameCard, { gamePath, PlatformList } from '../components/GameCard.jsx'
+import GameCard, { PlatformList } from '../components/GameCard.jsx'
 import GameImage from '../components/GameImage.jsx'
 import ReviewList from '../components/ReviewList.jsx'
 import { CommunityScore, MetacriticScore } from '../components/Scores.jsx'
 import { CardSkeletons, EmptyState, ErrorState, FirebasePending, Spinner } from '../components/States.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
-import { formatReleased, rawgImage } from '../lib/format.js'
+import { formatReleased, gamePath, rawgImage } from '../lib/format.js'
 import { useCommunityStats, useGames, useGenres, useRecentReviews } from '../lib/hooks.js'
 
 const iso = (d) => d.toISOString().slice(0, 10)
@@ -96,7 +96,7 @@ function RecentReviews() {
         <div className="recent-reviews">
           {recent.data.map((r) => (
             <div key={r.id} className="recent-review">
-              <Link to={`/juego/${r.gameId}${r.gameSlug ? `/${r.gameSlug}` : ''}#resena-${r.uid}`} className="recent-review__game">
+              <Link to={`${gamePath(r)}#resena-${r.uid}`} className="recent-review__game">
                 <GameImage src={r.gameImage} width={420} label={false} />
                 <span>{r.gameName}</span>
               </Link>
@@ -130,7 +130,11 @@ export default function Home() {
           <ErrorState error={popular.error} onRetry={() => popular.refetch()} />
         </div>
       )}
-      {featured && <Featured game={featured} />}
+      {featured ? (
+        <Featured game={featured} />
+      ) : (
+        <h1 className="sr-only">Checkpoint: descubrí, puntuá y compartí videojuegos</h1>
+      )}
 
       {!popular.isError && (
         <>

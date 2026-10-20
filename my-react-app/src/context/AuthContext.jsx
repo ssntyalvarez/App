@@ -13,8 +13,8 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(Boolean(auth))
-  const [profile, setProfile] = useState(null)
-  const [profileLoading, setProfileLoading] = useState(false)
+  // Perfil asociado al uid que lo cargó; así no hace falta limpiarlo dentro de un efecto.
+  const [profileState, setProfileState] = useState({ uid: null, profile: null })
 
   useEffect(() => {
     if (!auth) return undefined
@@ -26,21 +26,17 @@ export function AuthProvider({ children }) {
 
   // El perfil público del usuario se escucha en tiempo real.
   useEffect(() => {
-    if (!user) {
-      setProfile(null)
-      setProfileLoading(false)
-      return undefined
-    }
-    setProfileLoading(true)
+    if (!user) return undefined
+    const uid = user.uid
     return onSnapshot(
-      doc(db, 'users', user.uid),
-      (snap) => {
-        setProfile(snap.exists() ? { uid: user.uid, ...snap.data() } : null)
-        setProfileLoading(false)
-      },
-      () => setProfileLoading(false),
+      doc(db, 'users', uid),
+      (snap) => setProfileState({ uid, profile: snap.exists() ? { uid, ...snap.data() } : null }),
+      () => setProfileState({ uid, profile: null }),
     )
   }, [user])
+
+  const profileLoading = Boolean(user) && profileState.uid !== user.uid
+  const profile = user && profileState.uid === user.uid ? profileState.profile : null
 
   const value = {
     user,

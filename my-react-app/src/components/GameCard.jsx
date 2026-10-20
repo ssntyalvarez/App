@@ -1,13 +1,9 @@
 import { Link } from 'react-router'
 import { firebaseReady } from '../lib/firebase.js'
-import { releaseYear } from '../lib/format.js'
+import { gamePath, releaseYear } from '../lib/format.js'
 import { useCommunityStats } from '../lib/hooks.js'
 import GameImage from './GameImage.jsx'
 import { CommunityScore, MetacriticScore } from './Scores.jsx'
-
-export function gamePath(game) {
-  return `/juego/${game.id}${game.slug ? `/${game.slug}` : ''}`
-}
 
 export function PlatformList({ platforms = [], max = 3 }) {
   if (!platforms.length) return <span className="muted">Plataformas sin datos</span>

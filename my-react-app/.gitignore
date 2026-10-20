@@ -27,3 +27,9 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Pruebas y emuladores
+test-results/
+playwright-report/
+.firebase/
+*-debug.log

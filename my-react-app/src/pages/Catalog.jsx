@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import GameCard from '../components/GameCard.jsx'
 import { CardSkeletons, EmptyState, ErrorState, Spinner } from '../components/States.jsx'
@@ -10,6 +10,13 @@ const YEARS = Array.from({ length: CURRENT_YEAR + 1 - 1980 + 1 }, (_, i) => CURR
 
 export default function Catalog() {
   const [params, setParams] = useSearchParams()
+  // Se parte de la URL vigente al momento del evento: las navegaciones son transiciones
+  // y un cierre con parámetros viejos podría restaurar un filtro ya limpiado.
+  const updateParams = (mutate, options) => {
+    const next = new URLSearchParams(window.location.search)
+    mutate(next)
+    setParams(next, options)
+  }
   const q = params.get('q') ?? ''
   const genre = params.get('genero') ?? ''
   const platform = params.get('plataforma') ?? ''
@@ -20,33 +27,25 @@ export default function Catalog() {
   const [text, setText] = useState(q)
   const debounced = useDebouncedValue(text, 450)
 
-  const qRef = useRef(q)
-  useEffect(() => {
-    qRef.current = q
+  const [syncedQ, setSyncedQ] = useState(q)
+  if (q !== syncedQ) {
+    setSyncedQ(q)
     setText(q)
-  }, [q])
-
+  }
   // Solo reacciona a cambios del texto con demora, no a cambios de la URL.
   useEffect(() => {
     const value = debounced.trim()
-    if (value === qRef.current) return
-    setParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-        if (value) next.set('q', value)
-        else next.delete('q')
-        return next
-      },
-      { replace: true },
-    )
-  }, [debounced, setParams])
+    if (value === (new URLSearchParams(window.location.search).get('q') ?? '')) return
+    updateParams((next) => {
+      if (value) next.set('q', value)
+      else next.delete('q')
+    }, { replace: true })
+  }, [debounced]) // oxlint-disable-line react-hooks/exhaustive-deps
 
   const setParam = (key, value) =>
-    setParams((prev) => {
-      const next = new URLSearchParams(prev)
+    updateParams((next) => {
       if (value) next.set(key, value)
       else next.delete(key)
-      return next
     })
 
   const genres = useGenres()

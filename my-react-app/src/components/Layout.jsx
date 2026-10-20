@@ -118,10 +118,15 @@ function AccountMenu() {
 }
 
 export default function Layout() {
-  const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
-
-  useEffect(() => setMenuOpen(false), [location.pathname])
+  // El menú queda asociado a la ruta en la que se abrió: al navegar se cierra solo.
+  const [menuPath, setMenuPath] = useState(null)
+  const menuOpen = menuPath === location.pathname
+  const setMenuOpen = (open) =>
+    setMenuPath((current) => {
+      const next = typeof open === 'function' ? open(current === location.pathname) : open
+      return next ? location.pathname : null
+    })
 
   return (
     <>

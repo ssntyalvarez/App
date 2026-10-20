@@ -60,6 +60,13 @@ export function usePlatforms() {
 
 // ---------- Firestore ----------
 
+// Tras crear, editar o eliminar una reseña se refrescan todas las vistas que la usan.
+export function invalidateReviewData(queryClient, gameId, uid) {
+  queryClient.invalidateQueries({ queryKey: ['reviews'] })
+  queryClient.invalidateQueries({ queryKey: ['stats', String(gameId)] })
+  if (uid) queryClient.invalidateQueries({ queryKey: ['library', uid] })
+}
+
 export function useCommunityStats(gameId) {
   return useQuery({
     queryKey: ['stats', String(gameId)],

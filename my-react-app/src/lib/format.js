@@ -42,6 +42,13 @@ export function rawgImage(url, width = 640) {
   return url.replace('/media/', `/media/resize/${width}/-/`)
 }
 
+export function gamePath(game) {
+  // Reseñas y bibliotecas guardan gameId/gameSlug; los juegos de RAWG, id/slug.
+  const id = game.gameId ?? game.id
+  const slug = game.gameSlug ?? game.slug
+  return `/juego/${id}${slug ? `/${slug}` : ''}`
+}
+
 export function plural(n, one, many) {
   return `${n} ${n === 1 ? one : many}`
 }

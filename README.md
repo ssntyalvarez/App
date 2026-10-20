@@ -1,62 +1,106 @@
-# App
+# Checkpoint
 
-Aplicación web hecha con **React 19** y **Vite 8**. Todo el código de la aplicación vive en la carpeta `my-react-app/`; la raíz del repositorio solo contiene documentación.
+Aplicación web para **descubrir videojuegos, comparar puntuaciones y opinar**, inspirada en Metacritic. Trabajo práctico 2 de Desarrollo Frontend II (React + Vite + Firebase + Vercel).
+
+- Catálogo real de **RAWG** (búsqueda, filtros por género, plataforma y año, orden y “Cargar más”).
+- Dos puntuaciones separadas: **Metacritic · vía RAWG** (0–100) y **Comunidad Checkpoint** (promedio 0–10 de las opiniones reales de esta app, con cantidad de votos).
+- Cuentas con **Firebase Authentication** (correo y contraseña) y opiniones guardadas en **Cloud Firestore**: crear, editar y eliminar, con una opinión por usuario y juego.
+- Perfiles públicos en `/u/<alias>`; biblioteca personal y perfiles personalizables en desarrollo (ver la [bitácora](docs/BITACORA.md)).
+
+> Datos de juegos provistos por [RAWG](https://rawg.io). Las notas de Metacritic pueden variar según la plataforma o actualizarse.
 
 ## Estructura
 
 ```
 .
-├── README.md              # Este archivo
-├── CLAUDE.md              # Contexto técnico para Claude Code
-└── my-react-app/          # Aplicación React + Vite
-    ├── index.html         # Punto de entrada HTML (monta #root)
-    ├── package.json       # Scripts y dependencias
-    ├── package-lock.json  # Versiones exactas (usar con npm ci)
-    ├── vite.config.js     # Configuración de Vite (React + React Compiler vía Babel)
-    ├── .oxlintrc.json     # Reglas del linter (Oxlint)
-    ├── public/            # Archivos estáticos servidos tal cual (favicon, íconos)
-    └── src/
-        ├── main.jsx               # Punto de entrada: renderiza el componente raíz
-        ├── App.jsx / App.css      # Componente de la plantilla de Vite
-        ├── MiPrimerComponente.jsx # Componente que se renderiza actualmente
-        ├── index.css              # Estilos globales
-        └── assets/                # Imágenes importadas desde el código
+├── README.md / CLAUDE.md
+├── docs/
+│   ├── BITACORA.md            # Iteraciones, pruebas y dificultades
+│   └── evidencias/            # Capturas generadas por las pruebas
+└── my-react-app/              # ← Root Directory en Vercel (contiene package.json)
+    ├── api/
+    │   ├── rawg.js            # Función de servidor de Vercel: GET /api/rawg
+    │   └── _lib/rawg.js       # Lista blanca de rutas/parámetros, recorte de campos y caché
+    ├── src/
+    │   ├── main.jsx / App.jsx # Proveedores y rutas (React Router)
+    │   ├── lib/firebase.js    # ← Conexión con Firebase (Auth + Firestore)
+    │   ├── lib/reviews.js     # Operaciones de opiniones en Firestore
+    │   ├── lib/profiles.js    # Perfiles públicos y alias
+    │   ├── lib/rawg.js        # Cliente del proxy /api/rawg
+    │   ├── lib/hooks.js       # Consultas con caché (React Query)
+    │   ├── context/           # Sesión (AuthContext) y avisos (ToastContext)
+    │   ├── components/        # Tarjetas, puntuaciones, formulario de opinión, etc.
+    │   └── pages/             # Inicio, Catálogo, Ficha, Perfil, Ingreso/Registro
+    ├── firestore.rules        # Reglas de seguridad de Firestore
+    ├── firebase.json          # Configuración de reglas y emuladores
+    ├── vercel.json            # Build de Vite + reescritura para rutas del SPA
+    ├── tests/                 # Pruebas unitarias (proxy) y de reglas (emulador)
+    ├── e2e/                   # Pruebas de punta a punta (Playwright + emuladores)
+    └── .env.example
 ```
 
 ## Requisitos
 
-- **Node.js** `^20.19.0` o `>=22.12.0` (lo exige Vite 8).
-- **npm** (incluido con Node.js). El proyecto usa `package-lock.json`, así que conviene usar npm y no otro gestor.
+- **Node.js** `^20.19.0` o `>=22.12.0` y npm.
+- Para las pruebas con emuladores de Firebase: **Java 11+** (lo usa el emulador de Firestore).
 
-## Instalación
-
-Todos los comandos se ejecutan dentro de `my-react-app/`:
+## Instalación y desarrollo
 
 ```bash
 cd my-react-app
 npm ci
+cp .env.example .env      # completar valores (ver abajo)
+npm run dev               # http://localhost:5173
 ```
 
-`npm ci` instala exactamente las versiones del `package-lock.json` sin modificarlo.
+Sin `.env` la app igual abre y se puede recorrer: el catálogo y las cuentas muestran un aviso de **conexión pendiente**. No se muestran datos inventados.
 
-## Desarrollo
+### Variables de entorno
 
-```bash
-npm run dev       # Servidor de desarrollo con recarga en caliente (http://localhost:5173)
-```
+| Variable | Dónde se obtiene | ¿Pública? |
+| --- | --- | --- |
+| `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID` | Firebase Console → ⚙️ Configuración del proyecto → Tus apps → App web `</>` → `firebaseConfig` | Sí (se incorpora al navegador; los permisos los controlan las reglas) |
+| `RAWG_API_KEY` | [rawg.io/apidocs](https://rawg.io/apidocs) → *Get API Key* (plan gratuito, uso no comercial, requiere atribución) | **No**: solo la lee el servidor (`/api/rawg`). No lleva prefijo `VITE_` |
+
+Reiniciá `npm run dev` después de cambiar `.env`. En desarrollo, Vite atiende `/api/rawg` con el mismo código que la función de Vercel.
+
+### Configurar Firebase
+
+1. Crear un proyecto en [Firebase Console](https://console.firebase.google.com/) y registrar una **app web** (`</>`).
+2. **Authentication → Sign-in method → Correo electrónico/contraseña: Habilitar.**
+3. **Firestore Database → Crear base de datos** (edición Standard, id `(default)`, modo producción; región sugerida `southamerica-east1`).
+4. Publicar las reglas: copiar `my-react-app/firestore.rules` en **Firestore → Reglas → Publicar**, o con la CLI:
+   ```bash
+   npx firebase login
+   npx firebase deploy --only firestore:rules --project <id-del-proyecto>
+   ```
+   Desplegar en Vercel **no** actualiza las reglas.
+
+No hace falta el plan Blaze ni Firebase Storage.
 
 ## Verificación
 
 ```bash
-npm run lint      # Analiza el código con Oxlint
-npm run build     # Genera la versión de producción en my-react-app/dist/
-npm run preview   # Sirve localmente el contenido de dist/ para probarlo
+npm run lint         # Oxlint
+npm run build        # Build de producción → dist/
+npm test             # Pruebas unitarias del proxy de RAWG
+npm run test:rules   # Reglas de Firestore en el emulador (requiere Java)
+npm run test:e2e     # Playwright + emuladores de Auth y Firestore
 ```
 
-Antes de proponer cambios, ejecutá al menos `npm run lint` y `npm run build`.
+- Las pruebas de punta a punta usan los **emuladores** de Firebase (no tocan el proyecto real) y reemplazan RAWG en el navegador por un **doble de prueba con juegos ficticios** (`e2e/rawg-fixture.js`).
+- Si Playwright no encuentra su navegador, instalalo con `npx playwright install chromium` o indicá uno existente con `CHROMIUM_PATH=/ruta/a/chrome`.
+- `npm run emulators` levanta Auth + Firestore locales; con `VITE_USE_FIREBASE_EMULATORS=true` en `.env`, `npm run dev` se conecta a ellos.
 
-## Notas
+## Despliegue en Vercel
 
-- El proyecto usa JavaScript (`.jsx`), no TypeScript.
-- El [React Compiler](https://react.dev/learn/react-compiler) está activado mediante `@rolldown/plugin-babel`, lo que hace algo más lentos el desarrollo y el build.
-- `node_modules/`, `dist/` y los archivos `.env` están excluidos de git. Si hace falta documentar variables de entorno, usá un `.env.example` sin valores secretos.
+1. Importar el repositorio de GitHub en [Vercel](https://vercel.com/).
+2. **Root Directory: `my-react-app`** (es la carpeta que contiene `package.json`).
+3. Framework: **Vite** · Build: `npm run build` · Output: `dist` (ya definidos en `vercel.json`).
+4. **Settings → Environment Variables** (Production):
+   - Las cuatro `VITE_FIREBASE_*` (públicas).
+   - `RAWG_API_KEY` (privada, marcala como *Sensitive*).
+5. Desplegar. Si se cambian variables después, usar **Redeploy**.
+6. En Firebase → Authentication → Settings → **Dominios autorizados**, agregar el dominio `*.vercel.app` asignado.
+
+La función `api/rawg.js` solo acepta `resource=games|game|screenshots|genres|platforms` con parámetros validados, descarta todo lo demás y responde con `Cache-Control` para que el CDN de Vercel reutilice las respuestas y se ahorren consultas.
