@@ -139,10 +139,32 @@ Instrucción representativa: “Diferenciá claramente la puntuación personal d
 - **Una forma por tipo de nota** (cuadrado sólido = Metacritic 0–100, círculo = comunidad 0–10, caja de contorno = nota personal) para que se distingan aun sin leer la etiqueta; el color (lima/ámbar/coral) refuerza el rango, pero siempre hay texto.
 - **Estados honestos:** cuando falta un servicio se dice qué falta y no se rellena con datos de ejemplo.
 
+### Verificación con datos reales de RAWG
+Con la clave de RAWG configurada en el `.env` local (fuera del repositorio), se probó el proxy y la interfaz contra la API real:
+
+| Prueba | Resultado |
+| --- | --- |
+| Géneros, plataformas, búsqueda (“hollow knight” → 2 954 resultados), filtros combinados (RPG + Nintendo + 2017 → 95), orden por Metacritic, ficha de GTA V (92 general; PC 96, PS3 97, PS4 97, PS5 81…) y capturas | Correcto |
+| Recurso no permitido (`resource=users`) | 404 |
+| La clave aparece en alguna respuesta / la nota de usuarios de RAWG aparece | No / No |
+| En el navegador: escribir “celeste” letra por letra genera **una sola** consulta; Platformer → +Nintendo → +2017 → orden Metacritic (18 juegos: Super Mario Odyssey, SteamWorld Dig 2, Hollow Knight…); “Cargar más” 20 → 40; ficha con 6 capturas y título de pestaña | Correcto |
+
+Problemas que solo aparecieron con datos reales y se corrigieron:
+1. **Imágenes en 404.** RAWG solo acepta algunos anchos de redimensión (420, 640, 1280, 1920…); 960 devolvía 404 y la ficha mostraba “Sin imagen”. Se ajusta al ancho permitido más cercano y, si la versión redimensionada falla, se usa la original antes de mostrar el estado vacío (prueba unitaria agregada).
+2. **Carril vacío.** RAWG casi no tiene notas de Metacritic posteriores a 2023, así que “Mejor puntuados del último año” quedaba vacío; pasó a “Mejor puntuados de la última década”. En el catálogo, si se ordena por Metacritic y no hay resultados, se explica esta limitación.
+3. **Destacado sin nota.** El inicio ahora prefiere un juego con imagen y nota de Metacritic.
+4. **Textos cortados** (“Sin puntua…”, “Pendiente …”, “Puntuación M…”): etiquetas más cortas (“Sin nota”, “Sin conexión”, “Nota Metacritic”) y columna de orden más ancha. La ficha rotula “Nota general · por plataforma” cuando hay varias.
+
+| Inicio con RAWG real | Catálogo (RPG por Metacritic) | Ficha con notas por plataforma | Inicio en celular |
+| --- | --- | --- | --- |
+| ![Inicio real](evidencias/iteracion-3/07-rawg-real-inicio-desktop.jpg) | ![Catálogo real](evidencias/iteracion-3/08-rawg-real-catalogo-desktop.jpg) | ![Ficha real](evidencias/iteracion-3/09-rawg-real-ficha-desktop.jpg) | ![Inicio celular real](evidencias/iteracion-3/10-rawg-real-inicio-mobile.jpg) |
+
+Imágenes, títulos y notas de Metacritic de estas capturas: datos de [RAWG](https://rawg.io).
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)
 - **Firebase:** crear el proyecto, habilitar *Correo electrónico/contraseña*, crear Firestore y publicar `firestore.rules`; cargar las cuatro variables `VITE_FIREBASE_*`.
-- **RAWG:** obtener la clave y configurarla como `RAWG_API_KEY` (servidor).
+- **RAWG:** la clave ya funciona en desarrollo local (`.env`, no versionado); falta cargarla como `RAWG_API_KEY` en Vercel.
 - **Vercel:** importar el repositorio con Root Directory `my-react-app`, cargar las variables y desplegar (requiere autorización del responsable). Luego agregar el dominio de Vercel en *Authentication → Dominios autorizados* y repetir las pruebas sobre la URL publicada (agregar, consultar, modificar, eliminar, recargar y celular).
-- Hasta entonces, **ninguna prueba se hizo contra el proyecto real de Firebase ni con datos reales de RAWG**: todo lo anterior se verificó con emuladores y un doble de prueba.
+- Hasta entonces, **ninguna prueba se hizo contra el proyecto real de Firebase**: cuentas, opiniones y biblioteca se verificaron con los emuladores. RAWG sí se verificó con datos reales (ver arriba).

@@ -10,7 +10,7 @@ Aplicación web para **descubrir videojuegos, comparar puntuaciones y opinar**, 
 
 La evolución por iteraciones, las pruebas, las dificultades y la justificación del diseño están en la [bitácora](docs/BITACORA.md).
 
-> **Estado actual:** la app está lista para conectarse, pero todavía no tiene clave de RAWG ni proyecto de Firebase ni despliegue en Vercel. Todo se verificó con los emuladores de Firebase y un doble de prueba de RAWG (ver “Verificación”).
+> **Estado actual:** el catálogo de RAWG funciona con datos reales en desarrollo local. Falta crear el proyecto de Firebase y publicar en Vercel; cuentas, opiniones y biblioteca se verificaron con los emuladores de Firebase (ver “Verificación”).
 
 > Datos de juegos provistos por [RAWG](https://rawg.io). Las notas de Metacritic pueden variar según la plataforma o actualizarse.
 

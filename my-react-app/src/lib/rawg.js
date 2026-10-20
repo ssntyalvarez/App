@@ -37,9 +37,9 @@ async function request(params) {
 
 export const ORDER_OPTIONS = [
   { value: '', label: 'Relevancia' },
-  { value: '-metacritic', label: 'Puntuación Metacritic' },
-  { value: '-released', label: 'Lanzamiento: más recientes' },
-  { value: 'released', label: 'Lanzamiento: más antiguos' },
+  { value: '-metacritic', label: 'Nota Metacritic' },
+  { value: '-released', label: 'Más recientes' },
+  { value: 'released', label: 'Más antiguos' },
 ]
 
 export function yearRange(year) {

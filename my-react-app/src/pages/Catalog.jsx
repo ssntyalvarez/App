@@ -148,6 +148,9 @@ export default function Catalog() {
       {games.isSuccess && results.length === 0 && (
         <EmptyState title="No encontramos juegos con esos criterios">
           <p>Probá con otro nombre o quitá algún filtro.</p>
+          {ordering === '-metacritic' && (
+            <p className="muted">RAWG no tiene notas de Metacritic para muchos lanzamientos recientes.</p>
+          )}
         </EmptyState>
       )}
       {results.length > 0 && (

@@ -13,6 +13,9 @@ const iso = (d) => d.toISOString().slice(0, 10)
 const today = new Date()
 const yearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
 const LAST_YEAR = `${iso(yearAgo)},${iso(today)}`
+// RAWG casi no tiene notas de Metacritic de los lanzamientos más recientes: se usa una década.
+const decadeAgo = new Date(today.getFullYear() - 10, today.getMonth(), today.getDate())
+const LAST_DECADE = `${iso(decadeAgo)},${iso(today)}`
 
 function Featured({ game }) {
   const stats = useCommunityStats(game.id)
@@ -135,12 +138,14 @@ function RecentReviews() {
 
 export default function Home() {
   const popular = useGames({ ordering: '-added', dates: LAST_YEAR, pageSize: 9 })
-  const topYear = useGames({ ordering: '-metacritic', dates: LAST_YEAR, pageSize: 8 })
+  const topDecade = useGames({ ordering: '-metacritic', dates: LAST_DECADE, pageSize: 8 })
   const classics = useGames({ ordering: '-metacritic', pageSize: 8 })
   const genres = useGenres()
   useDocumentTitle(null)
 
-  const featured = popular.data?.results.find((g) => g.image) ?? popular.data?.results[0]
+  // Se prefiere un destacado con imagen y nota de Metacritic; si no hay, alcanza con la imagen.
+  const results = popular.data?.results ?? []
+  const featured = results.find((g) => g.image && g.metacritic != null) ?? results.find((g) => g.image) ?? results[0]
   const rest = popular.data ? { ...popular, data: { results: popular.data.results.filter((g) => g !== featured).slice(0, 8) } } : popular
 
   return (
@@ -164,7 +169,7 @@ export default function Home() {
       {!popular.isError && (
         <>
           <Rail title="Populares del último año" subtitle="Los más agregados en RAWG durante los últimos 12 meses." query={rest} link="/juegos" />
-          <Rail title="Mejor puntuados del último año" subtitle="Ordenados por Metacritic (vía RAWG)." query={topYear} link={`/juegos?orden=-metacritic&anio=${today.getFullYear()}`} />
+          <Rail title="Mejor puntuados de la última década" subtitle="Ordenados por la nota de Metacritic (vía RAWG) de los últimos 10 años." query={topDecade} link="/juegos?orden=-metacritic" />
           {genres.isSuccess && (
             <section className="section container">
               <h2 className="section__title">Explorá por género</h2>

@@ -173,7 +173,10 @@ export default function GameDetail() {
             {g.metacritic == null ? (
               <p className="muted">RAWG no informa una puntuación de Metacritic para este juego.</p>
             ) : mcPlatforms.length > 1 ? (
-              <ul className="mc-platforms">
+              <ul className="mc-platforms" aria-label="Nota de Metacritic por plataforma">
+                <li className="mc-platforms__head">
+                  <span>Nota general · por plataforma</span>
+                </li>
                 {mcPlatforms.map((m) => (
                   <li key={m.platform?.slug ?? m.score}>
                     <span>{m.platform?.name ?? 'Plataforma sin datos'}</span>

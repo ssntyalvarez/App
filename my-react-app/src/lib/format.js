@@ -34,12 +34,16 @@ function toDate(value) {
   return null
 }
 
-// RAWG permite pedir versiones redimensionadas de sus imágenes.
+// RAWG permite pedir versiones redimensionadas de sus imágenes, pero solo en algunos
+// anchos (p. ej. 960 devuelve 404): se usa el menor ancho permitido que alcance.
+const RAWG_WIDTHS = [420, 640, 1280, 1920]
+
 export function rawgImage(url, width = 640) {
   if (!url) return null
   if (!url.startsWith('https://media.rawg.io/media/')) return url
   if (url.includes('/media/resize/') || url.includes('/media/crop/')) return url
-  return url.replace('/media/', `/media/resize/${width}/-/`)
+  const size = RAWG_WIDTHS.find((w) => w >= width) ?? RAWG_WIDTHS.at(-1)
+  return url.replace('/media/', `/media/resize/${size}/-/`)
 }
 
 export function gamePath(game) {

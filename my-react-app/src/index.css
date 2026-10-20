@@ -1129,6 +1129,11 @@ fieldset {
   color: var(--text-soft);
 }
 
+/* En las tarjetas el detalle de la nota puede ocupar dos líneas en vez de cortarse. */
+.game-card .score__label span {
+  white-space: normal;
+}
+
 .game-card__scores {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1203,7 +1208,7 @@ fieldset {
 
 .filters {
   display: grid;
-  grid-template-columns: minmax(220px, 2fr) repeat(4, minmax(130px, 1fr)) auto;
+  grid-template-columns: minmax(200px, 2fr) repeat(3, minmax(120px, 1fr)) minmax(170px, 1.2fr) auto;
   gap: 14px;
   align-items: end;
   padding: 18px;
@@ -1679,6 +1684,13 @@ fieldset {
   border-radius: 8px;
   background: var(--surface-2);
   font-size: 0.85rem;
+}
+
+.mc-platforms .mc-platforms__head {
+  background: none;
+  padding: 0 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
 }
 
 .mc-platforms strong {

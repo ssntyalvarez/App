@@ -16,7 +16,7 @@ export function MetacriticScore({ score, platform, size = 'md', showLabel = true
         {showLabel && (
           <span className="score__label">
             <strong>Metacritic</strong>
-            <span>Sin puntuación</span>
+            <span>Sin nota</span>
           </span>
         )}
         {!showLabel && <span className="sr-only">Metacritic: sin puntuación</span>}
@@ -44,7 +44,7 @@ export function CommunityScore({ stats, loading, size = 'md', showLabel = true, 
   let value = '–'
   let detail = 'Sin votos'
   let dataTier
-  if (unavailable) detail = 'Pendiente de conexión'
+  if (unavailable) detail = 'Sin conexión'
   else if (loading) detail = 'Cargando…'
   else if (stats && stats.votes > 0) {
     value = formatAverage(stats.avg)
