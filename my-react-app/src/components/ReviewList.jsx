@@ -3,6 +3,7 @@ import { formatDate } from '../lib/format.js'
 import { useProfile } from '../lib/hooks.js'
 import { formatHours } from '../lib/reviews.js'
 import Avatar from './Avatar.jsx'
+import { LevelChip } from './LevelBadge.jsx'
 
 function wasEdited(review) {
   const c = review.createdAt?.toMillis?.()
@@ -18,7 +19,7 @@ function Author({ uid }) {
     <Link to={`/u/${profile.handle}`} className="review__author">
       <Avatar profile={profile} size={36} />
       <span>
-        <strong>{profile.displayName}</strong>
+        <strong>{profile.displayName} <LevelChip uid={uid} /></strong>
         <span className="muted">@{profile.handle}</span>
       </span>
     </Link>

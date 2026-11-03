@@ -69,7 +69,7 @@ test('@capturas pantallas principales', async ({ page }) => {
   await library(page, 3)
   await review(page, 3, 0, 'No me enganchó para nada.', 2)
 
-  await page.goto('/ajustes/perfil')
+  await page.goto('/configuracion')
   await page.getByLabel('Biografía corta').fill('Exploradora de mundos abiertos. Completo todo al 100 % (casi).')
   await settle(page)
   await shot(page, '05-editar-perfil')

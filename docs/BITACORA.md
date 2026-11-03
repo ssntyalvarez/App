@@ -224,6 +224,13 @@ A pedido del autor se simplificó el modelo:
 - **Año:** el desplegable de 50 años pasó a un selector en dos pasos (década → año), con opción de filtrar la década completa.
 - Pruebas: 23/23 de punta a punta (nuevas: tutorial completo y filtro por década).
 
+### Parte social, configuración y niveles
+- **Seguir y amigos:** `follows/{seguidor}_{seguido}`; dos personas que se siguen mutuamente son amigas. Pestaña **Amigos** en el perfil (amigos, seguidores, seguidos) y, en el propio, **Amigos de amigos** ordenados por amigos en común.
+- **Chat 1 a 1 en tiempo real** (`/mensajes`) con `onSnapshot`. Las reglas solo dejan leer y escribir a los dos integrantes y respetan “quién puede escribirme” al iniciar una conversación. Para “amigos de amigos”, el cliente indica un amigo en común (`via`) y las reglas comprueban las cuatro relaciones de seguimiento.
+- **Configuración** (engranaje en el perfil; reemplaza “Editar perfil”): Perfil, Privacidad (mensajes, mostrar seguidores/horas) y Cuenta (correo privado, cambio de contraseña con reautenticación, cerrar sesión). Las cuentas son siempre públicas.
+- **Niveles y XP:** se calculan a partir de las reseñas reales (100 XP por reseña, +50 si tiene 200 caracteres o más). Seis rangos con color propio, de gris (Novato) a dorado con brillo (Leyenda). Se ven en el perfil y junto al nombre en reseñas y listas.
+- Pruebas: 32 de reglas (7 sociales nuevas, incluida “amigos de amigos”), 33 unitarias (niveles) y 25 de punta a punta (seguir, chat entre dos navegadores, solo amigos, niveles).
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)

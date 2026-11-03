@@ -5,18 +5,22 @@ import Avatar from '../components/Avatar.jsx'
 import EntryEditor from '../components/EntryEditor.jsx'
 import GameImage from '../components/GameImage.jsx'
 import { TaskChecklist } from '../components/Onboarding.jsx'
+import { FollowButton, MessageButton, SocialTab } from '../components/Social.jsx'
+import LevelBadge from '../components/LevelBadge.jsx'
 import { PersonalScore } from '../components/Scores.jsx'
 import { EmptyState, ErrorState, FirebasePending, Spinner } from '../components/States.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { formatAverage, formatDate, formatMonth, gamePath } from '../lib/format.js'
-import { invalidateProfileData, invalidateReviewData, useDocumentTitle, useLibrary, useProfileByHandle, useUserReviews } from '../lib/hooks.js'
+import { invalidateProfileData, invalidateReviewData, useConnections, useDocumentTitle, useLibrary, useProfileByHandle, useUserReviews } from '../lib/hooks.js'
 import { MAX_FEATURED } from '../lib/library.js'
 import { useLibraryActions } from '../lib/libraryActions.js'
 import { fileToAvatar } from '../lib/image.js'
 import { firestoreMessage, updateProfile } from '../lib/profiles.js'
 import { deleteReview, formatHours } from '../lib/reviews.js'
+import { settingsOf } from '../lib/social.js'
+import { levelFromReviews } from '../lib/levels.js'
 
 
 function ShareButton({ profile }) {
@@ -196,7 +200,8 @@ export default function Profile() {
   const { handle } = useParams()
   const { user, profile: ownProfile } = useAuth()
   const [params, setParams] = useSearchParams()
-  const tab = params.get('tab') === 'resenas' ? 'resenas' : 'biblioteca'
+  const TABS = ['biblioteca', 'resenas', 'amigos']
+  const tab = TABS.includes(params.get('tab')) ? params.get('tab') : 'biblioteca'
 
   const profileQ = useProfileByHandle(handle)
   useDocumentTitle(profileQ.data ? `${profileQ.data.displayName} (@${profileQ.data.handle})` : 'Perfil')
@@ -205,6 +210,7 @@ export default function Profile() {
   const profile = isOwner && ownProfile ? ownProfile : profileQ.data
   const reviews = useUserReviews(profile?.uid)
   const library = useLibrary(profile?.uid)
+  const connections = useConnections(profile?.uid)
   const actions = useLibraryActions(user?.uid)
 
   if (!firebaseReady) return <div className="page container"><FirebasePending /></div>
@@ -235,6 +241,10 @@ export default function Profile() {
     setParams(next, { replace: true, preventScrollReset: true })
   }
   const loadingData = reviews.isPending || library.isPending
+  const settings = settingsOf(profile)
+  const showHours = isOwner || settings.showHours
+  const showFollows = isOwner || settings.showFollows
+  const level = levelFromReviews(reviewList)
 
   return (
     <div className="profile">
@@ -248,6 +258,7 @@ export default function Profile() {
           )}
           <div className="profile-hero__text">
             <h1>{profile.displayName}</h1>
+            {reviews.isSuccess && <LevelBadge level={level} isOwner={isOwner} />}
             <p className="profile-hero__handle">
               @{profile.handle}
               {profile.createdAt && <span className="muted"> · En Checkpoint desde {formatMonth(profile.createdAt)}</span>}
@@ -255,18 +266,33 @@ export default function Profile() {
             {profile.bio ? <p className="profile-hero__bio">{profile.bio}</p> : isOwner && <p className="muted">Todavía no escribiste una biografía.</p>}
           </div>
           <div className="profile-hero__actions">
+            {isOwner ? (
+              <Link to="/configuracion" className="btn btn--ghost icon-only" title="Configuración">
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                  <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                  <path d="M12 2.5v3M12 18.5v3M4.2 6.2l2.1 2.1M17.7 15.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 17.8l2.1-2.1M17.7 8.3l2.1-2.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                <span className="sr-only">Configuración</span>
+              </Link>
+            ) : (
+              <>
+                <FollowButton profile={profile} />
+                <MessageButton profile={profile} />
+              </>
+            )}
             <ShareButton profile={profile} />
-            {isOwner && <Link to="/ajustes/perfil" className="btn btn--primary">Editar perfil</Link>}
           </div>
         </div>
       </header>
 
       <div className="container">
         <dl className="stats" aria-busy={loadingData}>
-          <div>
-            <dt>Horas jugadas</dt>
-            <dd>{reviews.isPending ? '…' : hours.toLocaleString('es-AR')}</dd>
-          </div>
+          {showHours && (
+            <div>
+              <dt>Horas jugadas{isOwner && !settings.showHours ? ' (solo vos)' : ''}</dt>
+              <dd>{reviews.isPending ? '…' : hours.toLocaleString('es-AR')}</dd>
+            </div>
+          )}
           <div>
             <dt>Reseñas</dt>
             <dd>{reviews.isPending ? '…' : reviewList.length}</dd>
@@ -282,6 +308,15 @@ export default function Profile() {
             <dt>En biblioteca</dt>
             <dd>{library.isPending ? '…' : entries.length}</dd>
           </div>
+          {showFollows && (
+            <div>
+              <dt>Seguidores · Amigos</dt>
+              <dd>
+                {connections.data ? connections.data.followers.length : '…'}
+                <small> · {connections.data ? connections.data.friends.length : '…'}</small>
+              </dd>
+            </div>
+          )}
         </dl>
 
         {isOwner && <TaskChecklist />}
@@ -325,8 +360,9 @@ export default function Profile() {
           onKeyDown={(e) => {
             // Flechas izquierda/derecha para cambiar de pestaña (patrón de pestañas ARIA).
             if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
-            const next = tab === 'biblioteca' ? 'resenas' : 'biblioteca'
-            setParam('tab', next === 'resenas' ? 'resenas' : '')
+            const i = TABS.indexOf(tab) + (e.key === 'ArrowRight' ? 1 : -1)
+            const next = TABS[(i + TABS.length) % TABS.length]
+            setParam('tab', next === 'biblioteca' ? '' : next)
             document.getElementById(`tab-${next}`)?.focus()
           }}
         >
@@ -335,6 +371,9 @@ export default function Profile() {
           </button>
           <button type="button" role="tab" id="tab-resenas" aria-controls="panel-resenas" aria-selected={tab === 'resenas'} tabIndex={tab === 'resenas' ? 0 : -1} onClick={() => setParam('tab', 'resenas')}>
             Reseñas <span className="pill">{reviewList.length}</span>
+          </button>
+          <button type="button" role="tab" id="tab-amigos" aria-controls="panel-amigos" aria-selected={tab === 'amigos'} tabIndex={tab === 'amigos' ? 0 : -1} onClick={() => setParam('tab', 'amigos')}>
+            Amigos {showFollows && <span className="pill">{connections.data?.friends.length ?? '…'}</span>}
           </button>
         </div>
 
@@ -349,7 +388,7 @@ export default function Profile() {
                 {isOwner ? (
                   <>
                     <p>Sumá los juegos que te gustan desde su ficha o desde Editar perfil.</p>
-                    <Link to="/ajustes/perfil#favoritos" className="btn btn--primary">Agregar juegos favoritos</Link>
+                    <Link to="/configuracion#favoritos" className="btn btn--primary">Agregar juegos favoritos</Link>
                   </>
                 ) : (
                   <p>{profile.displayName} todavía no agregó juegos.</p>
@@ -374,6 +413,10 @@ export default function Profile() {
                 ) : null}
               </>
             )}
+          </section>
+        ) : tab === 'amigos' ? (
+          <section id="panel-amigos" role="tabpanel" aria-labelledby="tab-amigos" className="tab-panel">
+            <SocialTab profile={profile} isOwner={isOwner} connections={connections} />
           </section>
         ) : (
           <section id="panel-resenas" role="tabpanel" aria-labelledby="tab-resenas" className="tab-panel">

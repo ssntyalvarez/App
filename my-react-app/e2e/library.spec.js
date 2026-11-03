@@ -78,8 +78,12 @@ test.describe('biblioteca (juegos favoritos) y perfil', () => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     const owner = await register(page, { name: 'Martina Perfil' })
 
-    await page.goto('/ajustes/perfil')
-    await expect(page.getByText(/Tu correo \(.*\) es privado/)).toBeVisible()
+    // El correo solo aparece en Configuración → Cuenta, marcado como privado.
+    await page.goto('/configuracion?seccion=cuenta')
+    await expect(page.getByText(owner.email)).toBeVisible()
+    await expect(page.getByText('Es privado: solo lo ves vos')).toBeVisible()
+    await page.goto('/configuracion')
+    await expect(page.getByText('Todo lo de esta sección es público.')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Imagen de portada' })).toHaveCount(0)
     await page.getByLabel('Nombre visible').fill('Martina R.')
     await page.getByLabel('Biografía corta').fill('Jugadora de RPG y plataformas.')
@@ -119,7 +123,7 @@ test.describe('biblioteca (juegos favoritos) y perfil', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Martina R.')
     await expect(page.getByText('Jugadora de RPG y plataformas.')).toBeVisible()
     await expect(page.locator('.poster')).toContainText('Bravo 2')
-    await page.goto('/ajustes/perfil')
+    await page.goto('/configuracion')
     await expect(page.getByLabel('Alias')).toBeDisabled()
     await expect(page.getByText(/Vas a poder cambiarlo de nuevo el/)).toBeVisible()
 
@@ -136,7 +140,7 @@ test.describe('biblioteca (juegos favoritos) y perfil', () => {
     await expect(page.locator('.lib-card')).toHaveCount(1)
     await expect(page.locator('.lib-card')).toContainText('Su nota')
     await expect(page.getByRole('button', { name: 'Gestionar' })).toHaveCount(0)
-    await expect(page.locator('main').getByRole('link', { name: 'Editar perfil' })).toHaveCount(0)
+    await expect(page.locator('main').getByRole('link', { name: 'Configuración' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Cambiar foto' })).toHaveCount(0)
   })
 

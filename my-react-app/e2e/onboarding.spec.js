@@ -21,7 +21,7 @@ test.describe('tutorial de primeros pasos', () => {
     const dialog = page.getByRole('dialog')
     await expect(dialog).toContainText('Personalizá tu perfil')
     await dialog.getByRole('button', { name: 'Ir a hacerlo' }).click()
-    await expect(page).toHaveURL(/\/ajustes\/perfil$/)
+    await expect(page).toHaveURL(/\/configuracion$/)
     // Se marca dónde tocar.
     await expect(page.locator('.spotlight')).toBeVisible()
     await expect(page.locator('.spotlight-tip')).toContainText('Tocá acá')
@@ -46,7 +46,7 @@ test.describe('tutorial de primeros pasos', () => {
 
     // Desde la lista, “Hacerlo” lleva al lugar y lo resalta.
     await list.locator('li', { hasText: 'Agregá tus juegos favoritos' }).getByRole('button', { name: 'Hacerlo' }).click()
-    await expect(page).toHaveURL(/\/ajustes\/perfil#favoritos$/)
+    await expect(page).toHaveURL(/\/configuracion#favoritos$/)
     await expect(page.locator('.spotlight')).toBeVisible()
     await page.getByLabel('Agregar un juego').fill('Alfa')
     await page.locator('.fav-results li').first().getByRole('button', { name: 'Agregar' }).click()

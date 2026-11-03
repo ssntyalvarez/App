@@ -56,12 +56,11 @@ function useLogout() {
 
 // Opciones de la cuenta según haya sesión o no (se usan en el encabezado y en el footer).
 function accountLinks(profile) {
-  if (!profile) return [{ to: '/ajustes/perfil', label: 'Editar perfil' }]
+  if (!profile) return [{ to: '/configuracion', label: 'Configuración' }]
   return [
     { to: `/u/${profile.handle}`, label: 'Mi perfil' },
-    { to: `/u/${profile.handle}`, label: 'Mi biblioteca' },
-    { to: `/u/${profile.handle}?tab=resenas`, label: 'Mis reseñas' },
-    { to: '/ajustes/perfil', label: 'Editar perfil' },
+    { to: '/mensajes', label: 'Mensajes' },
+    { to: '/configuracion', label: 'Configuración' },
   ]
 }
 
