@@ -42,8 +42,14 @@ export const ORDER_OPTIONS = [
   { value: 'released', label: 'Más antiguos' },
 ]
 
+// '2016' → todo ese año; '2010s' → toda la década.
 export function yearRange(year) {
-  return year ? `${year}-01-01,${year}-12-31` : undefined
+  if (!year) return undefined
+  if (year.endsWith('s')) {
+    const start = Number(year.slice(0, 4))
+    return `${start}-01-01,${start + 9}-12-31`
+  }
+  return `${year}-01-01,${year}-12-31`
 }
 
 export const fetchGames = ({ search, genre, platform, year, ordering, page = 1, pageSize = 20, dates, metacritic }) =>

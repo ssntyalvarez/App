@@ -4,24 +4,20 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import Avatar from '../components/Avatar.jsx'
 import EntryEditor from '../components/EntryEditor.jsx'
 import GameImage from '../components/GameImage.jsx'
+import { TaskChecklist } from '../components/Onboarding.jsx'
 import { PersonalScore } from '../components/Scores.jsx'
 import { EmptyState, ErrorState, FirebasePending, Spinner } from '../components/States.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
-import { formatAverage, formatDate, formatMonth, gamePath, rawgImage } from '../lib/format.js'
+import { formatAverage, formatDate, formatMonth, gamePath } from '../lib/format.js'
 import { invalidateProfileData, invalidateReviewData, useDocumentTitle, useLibrary, useProfileByHandle, useUserReviews } from '../lib/hooks.js'
-import { MAX_FEATURED, STATUSES, statusLabel } from '../lib/library.js'
+import { MAX_FEATURED } from '../lib/library.js'
 import { useLibraryActions } from '../lib/libraryActions.js'
 import { fileToAvatar } from '../lib/image.js'
 import { firestoreMessage, updateProfile } from '../lib/profiles.js'
-import { deleteReview } from '../lib/reviews.js'
+import { deleteReview, formatHours } from '../lib/reviews.js'
 
-const FILTERS = [{ value: 'all', label: 'Todos' }, ...STATUSES, { value: 'favorites', label: 'Favoritos' }]
-
-function StatusBadge({ status }) {
-  return <span className={`status-badge status-badge--${status}`}>{statusLabel(status)}</span>
-}
 
 function ShareButton({ profile }) {
   const notify = useToast()
@@ -94,21 +90,17 @@ function LibraryCard({ entry, review, owner, isOwner, featured, actions }) {
     <li className={`lib-card ${editing ? 'is-editing' : ''}`}>
       <Link to={gamePath(entry)} className="lib-card__media" tabIndex={-1} aria-hidden="true">
         <GameImage src={entry.image} width={420} label={false} />
-        {entry.favorite && (
-          <span className="lib-card__fav" title="Favorito">
-            <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></svg>
+        {featured.includes(entry.gameId) && (
+          <span className="lib-card__fav" title="Destacado en el perfil">
+            <svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9z" /></svg>
           </span>
         )}
       </Link>
       <div className="lib-card__body">
-        <StatusBadge status={entry.status} />
         <h3 className="lib-card__title">
           <Link to={gamePath(entry)}>{entry.name}</Link>
-          {entry.favorite && <span className="sr-only"> (favorito)</span>}
         </h3>
-        {entry.status === 'completed' && entry.finishedAt && (
-          <p className="fine-print">Completado el {formatDate(entry.finishedAt)}</p>
-        )}
+        {review?.playtimeHours != null && <p className="playtime">{formatHours(review.playtimeHours)}</p>}
         <div className="lib-card__foot">
           <PersonalScore score={review?.score ?? null} label={isOwner ? 'Tu nota' : 'Su nota'} />
           {review && (
@@ -189,7 +181,8 @@ function ReviewsTab({ reviews, isOwner }) {
               <h3><Link to={gamePath(r)}>{r.gameName}</Link></h3>
               <PersonalScore score={r.score} label={isOwner ? 'Tu nota' : 'Su nota'} />
             </div>
-            {r.text ? <p>{r.text}</p> : <p className="muted">Solo puntuación.</p>}
+            {r.playtimeHours != null && <p className="playtime">{formatHours(r.playtimeHours)}</p>}
+            {r.text ? <p>{r.text}</p> : <p className="muted">Sin reseña escrita.</p>}
             <p className="fine-print">{formatDate(r.updatedAt)}</p>
             {isOwner && <OwnReviewActions review={r} />}
           </div>
@@ -204,7 +197,6 @@ export default function Profile() {
   const { user, profile: ownProfile } = useAuth()
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') === 'resenas' ? 'resenas' : 'biblioteca'
-  const filter = FILTERS.some((f) => f.value === params.get('estado')) ? params.get('estado') : 'all'
 
   const profileQ = useProfileByHandle(handle)
   useDocumentTitle(profileQ.data ? `${profileQ.data.displayName} (@${profileQ.data.handle})` : 'Perfil')
@@ -233,16 +225,9 @@ export default function Profile() {
   const entries = library.data ?? []
   const reviewByGame = new Map(reviewList.map((r) => [r.gameId, r]))
   const avg = reviewList.length ? reviewList.reduce((s, r) => s + r.score, 0) / reviewList.length : null
-  const completed = entries.filter((e) => e.status === 'completed').length
-  const counts = Object.fromEntries(
-    FILTERS.map((f) => [
-      f.value,
-      f.value === 'all' ? entries.length : f.value === 'favorites' ? entries.filter((e) => e.favorite).length : entries.filter((e) => e.status === f.value).length,
-    ]),
-  )
-  const visible = entries.filter((e) => (filter === 'all' ? true : filter === 'favorites' ? e.favorite : e.status === filter))
+  // Horas jugadas: suma de las horas informadas en sus reseñas.
+  const hours = reviewList.reduce((sum, r) => sum + (r.playtimeHours ?? 0), 0)
   const featured = (profile.featured ?? []).map((id) => entries.find((e) => e.gameId === id)).filter(Boolean)
-  const cover = rawgImage(profile.coverUrl, 1600)
   const setParam = (key, value) => {
     const next = new URLSearchParams(window.location.search)
     if (value) next.set(key, value)
@@ -254,7 +239,7 @@ export default function Profile() {
   return (
     <div className="profile">
       <header className="profile-hero">
-        <div className={`profile-hero__cover ${cover ? '' : 'is-default'}`} style={cover ? { backgroundImage: `url("${cover}")` } : undefined} aria-hidden="true" />
+        <div className="profile-hero__cover is-default" aria-hidden="true" />
         <div className="container profile-hero__inner">
           {isOwner ? (
             <EditableAvatar profile={profile} />
@@ -279,8 +264,8 @@ export default function Profile() {
       <div className="container">
         <dl className="stats" aria-busy={loadingData}>
           <div>
-            <dt>Completados</dt>
-            <dd>{library.isPending ? '…' : completed}</dd>
+            <dt>Horas jugadas</dt>
+            <dd>{reviews.isPending ? '…' : hours.toLocaleString('es-AR')}</dd>
           </div>
           <div>
             <dt>Reseñas</dt>
@@ -299,6 +284,8 @@ export default function Profile() {
           </div>
         </dl>
 
+        {isOwner && <TaskChecklist />}
+
         {(featured.length > 0 || isOwner) && (
           <section className="section featured-games" aria-labelledby="destacados">
             <div className="section__head">
@@ -315,7 +302,6 @@ export default function Profile() {
                         <GameImage src={e.image} width={640} label={false} />
                         <span className="poster__rank" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
                         <span className="poster__info">
-                          <StatusBadge status={e.status} />
                           <strong>{e.name}</strong>
                           <span className="poster__score">{r ? `${r.score}/10` : 'Sin puntuar'}</span>
                         </span>
@@ -326,7 +312,7 @@ export default function Profile() {
               </ol>
             ) : (
               <p className="hint-box">
-                Marcá juegos como <strong>Favorito</strong> y elegí <strong>Destacar en perfil</strong> para mostrar hasta {MAX_FEATURED} aquí.
+                Agregá juegos a tu biblioteca y elegí <strong>Destacar en perfil</strong> para mostrar hasta {MAX_FEATURED} aquí.
               </p>
             )}
           </section>
@@ -362,8 +348,8 @@ export default function Profile() {
               <EmptyState title="La biblioteca está vacía" icon="flag">
                 {isOwner ? (
                   <>
-                    <p>Agregá juegos desde su ficha y clasificalos como Quiero jugar, Jugando, Completado o Abandonado.</p>
-                    <Link to="/juegos" className="btn btn--primary">Explorar el catálogo</Link>
+                    <p>Sumá los juegos que te gustan desde su ficha o desde Editar perfil.</p>
+                    <Link to="/ajustes/perfil#favoritos" className="btn btn--primary">Agregar juegos favoritos</Link>
                   </>
                 ) : (
                   <p>{profile.displayName} todavía no agregó juegos.</p>
@@ -371,22 +357,9 @@ export default function Profile() {
               </EmptyState>
             ) : (
               <>
-                <div className="filter-chips" role="group" aria-label="Filtrar por estado">
-                  {FILTERS.map((f) => (
-                    <button
-                      key={f.value}
-                      type="button"
-                      className={`chip ${filter === f.value ? 'is-active' : ''}`}
-                      aria-pressed={filter === f.value}
-                      onClick={() => setParam('estado', f.value === 'all' ? '' : f.value)}
-                    >
-                      {f.label} <span>{counts[f.value]}</span>
-                    </button>
-                  ))}
-                </div>
-                {visible.length ? (
+                {entries.length ? (
                   <ul className="lib-grid">
-                    {visible.map((e) => (
+                    {entries.map((e) => (
                       <LibraryCard
                         key={e.gameId}
                         entry={e}
@@ -398,9 +371,7 @@ export default function Profile() {
                       />
                     ))}
                   </ul>
-                ) : (
-                  <EmptyState title="No hay juegos con ese estado" />
-                )}
+                ) : null}
               </>
             )}
           </section>

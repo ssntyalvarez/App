@@ -2,7 +2,7 @@ import { expect } from '@playwright/test'
 
 export const uniq = () => Math.random().toString(36).slice(2, 8)
 
-export async function register(page, { name = 'Ana Prueba', handle, email, password = 'secreta123' } = {}) {
+export async function register(page, { name = 'Ana Prueba', handle, email, password = 'secreta123', keepTutorial = false } = {}) {
   const id = uniq()
   handle ??= `ana_${id}`
   email ??= `ana_${id}@example.com`
@@ -14,6 +14,11 @@ export async function register(page, { name = 'Ana Prueba', handle, email, passw
   await page.getByLabel('Repetir contraseña').fill(password)
   await page.getByRole('button', { name: 'Crear cuenta' }).click()
   await expect(page).toHaveURL(new RegExp(`/u/${handle}$`))
+  if (!keepTutorial) {
+    // Al crear la cuenta aparece el tutorial de primeros pasos; las pruebas lo omiten.
+    await page.getByRole('button', { name: 'Omitir el tutorial' }).click()
+    await expect(page.getByRole('dialog')).toBeHidden()
+  }
   return { name, handle, email, password }
 }
 
@@ -29,4 +34,12 @@ export async function logout(page) {
   await page.locator('.account__trigger').click()
   await page.locator('.account__menu').getByRole('button', { name: 'Cerrar sesión' }).click()
   await expect(page.locator('.site-header').getByRole('link', { name: 'Ingresar' })).toBeVisible()
+}
+
+// Publica una opinión estilo Steam: horas jugadas, puntuación y reseña.
+export async function writeReview(page, { score, hours = 12, text = 'Una reseña de prueba con suficiente texto.' }) {
+  await page.getByLabel('Horas jugadas').fill(String(hours))
+  await page.locator('.score-picker__option', { hasText: new RegExp(`^${score}$`) }).click()
+  await page.getByLabel('Tu reseña').fill(text)
+  await page.getByRole('button', { name: /Publicar opinión|Guardar cambios/ }).click()
 }

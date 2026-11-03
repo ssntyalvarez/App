@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import GameCard from '../components/GameCard.jsx'
+import YearPicker from '../components/YearPicker.jsx'
 import { CardSkeletons, EmptyState, ErrorState, Spinner } from '../components/States.jsx'
 import { useDebouncedValue, useDocumentTitle, useGenres, useInfiniteGames, usePlatforms } from '../lib/hooks.js'
 import { ORDER_OPTIONS } from '../lib/rawg.js'
 
-const CURRENT_YEAR = new Date().getFullYear()
-const YEARS = Array.from({ length: CURRENT_YEAR + 1 - 1980 + 1 }, (_, i) => CURRENT_YEAR + 1 - i)
 
 export default function Catalog() {
   const [params, setParams] = useSearchParams()
@@ -21,7 +20,9 @@ export default function Catalog() {
   const q = params.get('q') ?? ''
   const genre = params.get('genero') ?? ''
   const platform = params.get('plataforma') ?? ''
-  const year = params.get('anio') ?? ''
+  // Año ('2016') o década ('2010s'); cualquier otro valor se ignora.
+  const rawYear = params.get('anio') ?? ''
+  const year = /^\d{4}s?$/.test(rawYear) ? rawYear : ''
   const ordering = params.get('orden') ?? ''
 
   // El texto se escribe en estado local y se aplica a la URL con una demora breve.
@@ -105,12 +106,7 @@ export default function Catalog() {
         </div>
         <div className="field">
           <label htmlFor="f-year">Año</label>
-          <select id="f-year" value={year} onChange={(e) => setParam('anio', e.target.value)}>
-            <option value="">Todos</option>
-            {YEARS.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+          <YearPicker id="f-year" value={year} onChange={(v) => setParam('anio', v)} />
         </div>
         <div className="field">
           <label htmlFor="f-order">Ordenar por</label>
@@ -156,7 +152,7 @@ export default function Catalog() {
       {results.length > 0 && (
         <div className="game-grid">
           {results.map((g, i) => (
-            <GameCard key={`${g.id}-${i}`} game={g} eager={i < 4} />
+            <GameCard key={`${g.id}-${i}`} game={g} eager={i < 4} tour={i === 0 ? 'juego' : undefined} />
           ))}
         </div>
       )}

@@ -17,12 +17,12 @@ export function PlatformList({ platforms = [], max = 3 }) {
   )
 }
 
-export default function GameCard({ game, eager = false }) {
+export default function GameCard({ game, eager = false, tour }) {
   const stats = useCommunityStats(game.id)
   const year = game.tba ? 'Por anunciar' : releaseYear(game.released) || 'Sin fecha'
 
   return (
-    <article className="game-card">
+    <article className="game-card" data-tour={tour}>
       <Link to={gamePath(game)} className="game-card__link">
         <div className="game-card__media">
           <GameImage src={game.image} width={640} eager={eager} />

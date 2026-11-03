@@ -1,7 +1,7 @@
 // Capturas para la bitácora. Solo se ejecuta con EVIDENCIAS=<carpeta>.
 // Usa juegos FICTICIOS (doble de prueba de RAWG) y cuentas creadas en el emulador.
 import { expect, test } from '@playwright/test'
-import { register } from './helpers.js'
+import { register, writeReview } from './helpers.js'
 import { mockRawg } from './rawg-fixture.js'
 
 const dir = process.env.EVIDENCIAS
@@ -21,28 +21,17 @@ async function shot(page, name) {
 }
 const settle = (page) => page.waitForTimeout(700)
 
-async function review(page, n, score, text) {
+async function review(page, n, score, text, hours = 20) {
   await page.goto(`/juego/${900000 + n}/juego-de-prueba-${n}`)
-  await page.locator('.score-picker__option', { hasText: new RegExp(`^${score}$`) }).click()
-  if (text) await page.getByLabel('Comentario').fill(text)
-  await page.getByRole('button', { name: 'Publicar opinión' }).click()
+  await writeReview(page, { score, hours, text: text ?? 'Una experiencia que vale la pena jugar.' })
   await expect(page.locator('.review-own')).toBeVisible()
 }
 
-async function library(page, n, status, { favorite, feature, finished } = {}) {
+async function library(page, n, { feature } = {}) {
   await page.goto(`/juego/${900000 + n}/juego-de-prueba-${n}`)
   const panel = page.locator('.library-panel')
-  await panel.getByLabel('Agregar como').selectOption({ label: status })
   await panel.getByRole('button', { name: 'Agregar a mi biblioteca' }).click()
-  await expect(panel.getByRole('button', { name: 'Favorito' })).toBeVisible()
-  if (finished) {
-    await panel.getByLabel('Fecha de finalización').fill(finished)
-    await settle(page)
-  }
-  if (favorite) {
-    await panel.getByRole('button', { name: 'Favorito' }).click()
-    await expect(panel.getByRole('button', { name: 'Destacar en perfil' })).toBeEnabled()
-  }
+  await expect(panel.getByText('Está en tu biblioteca')).toBeVisible()
   if (feature) {
     await panel.getByRole('button', { name: 'Destacar en perfil' }).click()
     await expect(panel.getByRole('button', { name: 'Destacar en perfil' })).toHaveAttribute('aria-pressed', 'true')
@@ -67,22 +56,21 @@ test('@capturas pantallas principales', async ({ page }) => {
 
   const user = await register(page, { name: 'Valentina Ríos' })
   await review(page, 6, 8, 'Gran ritmo y un mundo que invita a explorar. El tramo final se hace largo, pero vale la pena.')
-  await library(page, 6, 'Completado', { favorite: true, feature: true, finished: '2026-08-02' })
+  await library(page, 6, { feature: true })
   await page.reload()
   await expect(page.locator('.review-own')).toBeVisible()
   await settle(page)
   await shot(page, '04-ficha')
 
   await review(page, 1, 10, 'Una obra maestra del género.')
-  await library(page, 1, 'Completado', { favorite: true, feature: true })
-  await library(page, 8, 'Jugando', { favorite: true, feature: true })
-  await library(page, 2, 'Quiero jugar')
-  await library(page, 3, 'Abandonado')
-  await review(page, 3, 0)
+  await library(page, 1, { feature: true })
+  await library(page, 8, { feature: true })
+  await library(page, 2)
+  await library(page, 3)
+  await review(page, 3, 0, 'No me enganchó para nada.', 2)
 
   await page.goto('/ajustes/perfil')
   await page.getByLabel('Biografía corta').fill('Exploradora de mundos abiertos. Completo todo al 100 % (casi).')
-  await page.locator('.cover-option').nth(1).click()
   await settle(page)
   await shot(page, '05-editar-perfil')
   await page.getByRole('button', { name: 'Guardar cambios' }).click()

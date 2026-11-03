@@ -210,6 +210,20 @@ Dificultades:
 - **Cambiar la foto desde el perfil:** al pasar el mouse (o enfocar con el teclado) sobre el avatar propio aparece “Cambiar foto”. En pantallas táctiles se muestra un botón pequeño fijo.
 - Pruebas: 21/21 de punta a punta (nuevas: ojito, cambio de foto y nombre sin mayúsculas forzadas).
 
+### Biblioteca de favoritos y opiniones estilo Steam
+A pedido del autor se simplificó el modelo:
+- **Biblioteca = juegos favoritos.** Se agregan con un botón (corazón) desde la ficha o desde **Editar perfil → Tus juegos favoritos**, que incluye un buscador del catálogo. Se quitaron los estados (Quiero jugar, Jugando, Completado, Abandonado) y la fecha de finalización. Se mantienen los hasta 4 destacados.
+- **Opinión estilo Steam:** horas jugadas (obligatorio, entero), puntuación 0–10 y reseña escrita (10–2000 caracteres). Cada reseña muestra “X h jugadas”. En el perfil, “Completados” pasó a **Horas jugadas** (suma de las horas de sus reseñas).
+- **Alias:** después de cambiarlo hay que esperar una semana para volver a cambiarlo (`handleChangedAt`, controlado también por las reglas).
+- **Editar perfil:** sin “Imagen de portada”; la foto se cambia pasando el mouse sobre el avatar de la vista previa.
+- Reglas reescritas para el nuevo formato (reseñas con `playtimeHours`, biblioteca sin estados, espera del alias). Pruebas: 25 de reglas, 30 unitarias y 21 de punta a punta.
+
+### Tutorial de primeros pasos y selector de año
+- **Tutorial:** al crear la cuenta aparece una ventana por tarea (personalizar perfil, agregar favoritos, opinar), con “Ir a hacerlo”, “Omitir” y “Omitir el tutorial”. “Ir a hacerlo” lleva a la pantalla y marca dónde tocar con un borde lima que late y un cartel “Tocá acá”. Al completar la tarea con datos reales se avisa y se pasa a la siguiente.
+- **Lista de tareas:** si se omite, la lista “Primeros pasos” (con progreso real) queda en el Inicio y en el perfil propio hasta completar todo. Sin sesión, propone crear cuenta o ingresar. El estado del tutorial es una preferencia de interfaz y se guarda en el navegador; el progreso se calcula con los datos de Firestore.
+- **Año:** el desplegable de 50 años pasó a un selector en dos pasos (década → año), con opción de filtrar la década completa.
+- Pruebas: 23/23 de punta a punta (nuevas: tutorial completo y filtro por década).
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)

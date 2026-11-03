@@ -6,6 +6,7 @@ import { authMessage, useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { useDocumentTitle } from '../lib/hooks.js'
+import { markTourPending } from '../lib/onboarding.js'
 import {
   createProfile,
   firestoreMessage,
@@ -157,6 +158,7 @@ export function Register() {
       const cred = await register(form.email.trim(), form.password)
       try {
         await createProfile(cred.user.uid, form)
+        markTourPending(cred.user.uid)
       } catch (err) {
         notify(firestoreMessage(err, 'La cuenta se creó, pero falta completar el perfil.'), 'error')
         navigate('/bienvenida', { replace: true, state: location.state })
@@ -229,6 +231,7 @@ export function Welcome() {
         return
       }
       await createProfile(user.uid, form)
+      markTourPending(user.uid)
       notify('Perfil creado.')
       navigate(location.state?.from || `/u/${form.handle}`, { replace: true })
     } catch (err) {

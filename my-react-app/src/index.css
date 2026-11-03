@@ -981,6 +981,71 @@ fieldset legend {
   box-shadow: none;
 }
 
+.input-suffix {
+  display: flex;
+  align-items: center;
+  max-width: 180px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.input-suffix:focus-within {
+  border-color: var(--lime);
+  box-shadow: 0 0 0 3px var(--lime-soft);
+}
+
+.field .input-suffix input {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.input-suffix > span {
+  padding-right: 14px;
+  color: var(--muted);
+}
+
+/* Tiempo de juego de una reseña, como en Steam. */
+.playtime {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.playtime::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  background: linear-gradient(currentColor, currentColor) 5px 2px / 1.5px 4.5px no-repeat;
+}
+
+.review-own__score .playtime {
+  margin-left: 12px;
+}
+
+.library-panel__in {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.heart {
+  width: 18px;
+  height: 18px;
+  color: var(--coral);
+}
+
+.btn .heart {
+  color: currentColor;
+}
+
 .input-reveal {
   position: relative;
 }
@@ -1461,6 +1526,99 @@ fieldset {
   position: sticky;
   top: calc(var(--header-h) + 12px);
   z-index: 10;
+}
+
+.year-picker {
+  position: relative;
+}
+
+.year-picker__trigger {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+}
+
+.year-picker__trigger[aria-expanded='true'],
+.year-picker__trigger:focus-visible {
+  outline: none;
+  border-color: var(--lime);
+  box-shadow: 0 0 0 3px var(--lime-soft);
+}
+
+.year-picker__panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(340px, calc(100vw - 32px));
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow);
+}
+
+.year-picker__decades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.year-picker__decades .chip {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.85rem;
+}
+
+.year-picker__years {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.year-picker__year {
+  min-height: 38px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.year-picker__year:hover {
+  border-color: var(--text-soft);
+}
+
+.year-picker__year.is-selected {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: var(--ink-on-lime);
+  font-weight: 600;
+}
+
+.year-picker__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+@media (max-width: 640px) {
+  .filters .year-picker__panel {
+    left: auto;
+    right: 0;
+  }
 }
 
 .filters__clear {
@@ -2919,6 +3077,134 @@ fieldset {
 
 /* ---------- Editar perfil ---------- */
 
+.avatar-editable--sm .avatar-editable__btn {
+  inset: 3px;
+  font-size: 0.68rem;
+}
+
+.avatar-editable--sm .avatar-editable__btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.profile-edit__initials {
+  justify-self: start;
+  margin-top: 4px;
+  font-size: 0.8rem;
+}
+
+.favorites {
+  display: grid;
+  gap: 14px;
+}
+
+.fav-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.fav-item {
+  position: relative;
+  display: grid;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.fav-item .game-img {
+  aspect-ratio: 16 / 9;
+}
+
+.fav-item__name {
+  padding: 6px 8px 8px;
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fav-item__actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+}
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(18, 19, 20, 0.82);
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.icon-btn:hover {
+  color: var(--text);
+}
+
+.icon-btn.is-on {
+  color: var(--lime);
+}
+
+.icon-btn.is-on svg {
+  fill: currentColor;
+}
+
+.fav-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.fav-results li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.fav-results .game-img {
+  width: 72px;
+  height: 42px;
+  border-radius: 6px;
+}
+
+.fav-results li > span:not(.fav-results__done) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fav-results__done {
+  font-size: 0.8rem;
+  padding-right: 8px;
+}
+
+
 .profile-edit {
   display: grid;
   gap: 20px;
@@ -3382,6 +3668,224 @@ fieldset {
 
   .auth--register .auth__card {
     padding: 20px;
+  }
+}
+
+/* ---------- Tutorial de primeros pasos ---------- */
+
+.tour {
+  width: min(460px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.tour::backdrop {
+  background: rgba(8, 8, 9, 0.7);
+  backdrop-filter: blur(3px);
+}
+
+.tour__inner {
+  display: grid;
+  gap: 14px;
+  padding: 28px;
+}
+
+.tour__progress {
+  display: flex;
+  gap: 6px;
+}
+
+.tour__progress span {
+  width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+
+.tour__progress span.is-on {
+  background: var(--lime);
+}
+
+.tour__eyebrow {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.tour h2 {
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+
+.tour__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.tour__skip-all {
+  justify-self: start;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Marca dónde tocar: borde lima que late, sin bloquear la interacción. */
+.spotlight {
+  position: fixed;
+  z-index: 70;
+  border-radius: 16px;
+  border: 2px solid var(--lime);
+  box-shadow: 0 0 0 4px var(--lime-soft), 0 0 0 9999px rgba(8, 8, 9, 0.45);
+  pointer-events: none;
+  animation: spotlight-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes spotlight-pulse {
+  50% {
+    box-shadow: 0 0 0 10px rgba(200, 240, 74, 0.08), 0 0 0 9999px rgba(8, 8, 9, 0.45);
+  }
+}
+
+.spotlight-tip {
+  position: fixed;
+  z-index: 71;
+  width: min(320px, calc(100vw - 24px));
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--lime);
+  color: var(--ink-on-lime);
+  box-shadow: var(--shadow);
+  font-size: 0.9rem;
+}
+
+.spotlight-tip strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.spotlight-tip .link-btn {
+  justify-self: start;
+  margin-top: 4px;
+  color: var(--ink-on-lime);
+  font-size: 0.8rem;
+}
+
+.spotlight-tip.is-floating {
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+}
+
+.home__tasks:has(.checklist) {
+  padding-top: 32px;
+}
+
+.checklist {
+  margin-top: 28px;
+  padding: 22px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 16px;
+}
+
+.home__tasks .checklist {
+  margin-top: 0;
+}
+
+.checklist__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.checklist__head h2 {
+  font-size: 1.4rem;
+}
+
+.checklist__bar {
+  width: min(240px, 100%);
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.checklist__bar span {
+  display: block;
+  height: 100%;
+  background: var(--lime);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.checklist__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.checklist__list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.checklist__check {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.checklist__list li.is-done .checklist__check {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: var(--ink-on-lime);
+}
+
+.checklist__list li.is-done strong {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.checklist__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.checklist__text .muted {
+  font-size: 0.85rem;
+}
+
+@media (max-width: 560px) {
+  .checklist__list li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .checklist__cta {
+    grid-column: 2;
+    justify-self: start;
   }
 }
 

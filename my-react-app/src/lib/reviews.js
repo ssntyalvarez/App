@@ -19,6 +19,14 @@ import {
 import { db } from './firebase.js'
 
 export const MAX_REVIEW_LENGTH = 2000
+export const MIN_REVIEW_LENGTH = 10
+export const MAX_HOURS = 20000
+
+// “12 h jugadas”, como en Steam. Las reseñas anteriores al cambio pueden no tener horas.
+export function formatHours(hours) {
+  if (hours == null) return null
+  return `${hours.toLocaleString('es-AR')} h jugadas`
+}
 
 export const reviewId = (gameId, uid) => `${gameId}_${uid}`
 
@@ -63,14 +71,21 @@ export function statsFromReviews(reviews) {
   return { votes: reviews.length, avg: reviews.reduce((s, r) => s + r.score, 0) / reviews.length }
 }
 
-export function validateReview({ score, text }) {
+// Una opinión, como en Steam: tiempo de juego, puntuación y reseña escrita.
+export function validateReview({ score, text, hours }) {
   const errors = {}
+  if (hours === '' || hours == null) errors.hours = 'Indicá cuántas horas lo jugaste.'
+  else if (!/^\d+$/.test(String(hours)) || Number(hours) > MAX_HOURS) {
+    errors.hours = `Ingresá un número entero de horas, entre 0 y ${MAX_HOURS.toLocaleString('es-AR')}.`
+  }
   if (!Number.isInteger(score) || score < 0 || score > 10) errors.score = 'Elegí una puntuación de 0 a 10.'
-  if (text.length > MAX_REVIEW_LENGTH) errors.text = `Máximo ${MAX_REVIEW_LENGTH} caracteres.`
+  const len = text.trim().length
+  if (len < MIN_REVIEW_LENGTH) errors.text = `Escribí tu reseña (al menos ${MIN_REVIEW_LENGTH} caracteres).`
+  else if (len > MAX_REVIEW_LENGTH) errors.text = `Máximo ${MAX_REVIEW_LENGTH} caracteres.`
   return errors
 }
 
-export async function saveReview({ uid, game, score, text, existing }) {
+export async function saveReview({ uid, game, score, text, hours, existing }) {
   const ref = doc(db, 'reviews', reviewId(game.id, uid))
   const snapshot = {
     gameName: game.name,
@@ -78,6 +93,7 @@ export async function saveReview({ uid, game, score, text, existing }) {
     gameImage: game.image ?? null,
     score,
     text: text.trim(),
+    playtimeHours: Number(hours),
     updatedAt: serverTimestamp(),
   }
   if (existing) {

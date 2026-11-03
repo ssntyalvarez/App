@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { login, logout, register } from './helpers.js'
+import { login, logout, register, writeReview } from './helpers.js'
 import { mockRawg } from './rawg-fixture.js'
 
 const GAME = '/juego/900003/juego-de-prueba-3'
@@ -14,16 +14,17 @@ test.describe('opiniones con Firebase (emuladores)', () => {
     await expect(panel.getByText('Todavía nadie lo puntuó')).toBeVisible()
     await expect(page.getByText('Todavía no hay opiniones')).toBeVisible()
 
-    // Sin elegir puntuación no se publica.
+    // Sin horas, puntuación ni reseña no se publica (como en Steam).
     await page.getByRole('button', { name: 'Publicar opinión' }).click()
+    await expect(page.getByText('Indicá cuántas horas lo jugaste.')).toBeVisible()
     await expect(page.getByText('Elegí una puntuación de 0 a 10.')).toBeVisible()
+    await expect(page.getByText('Escribí tu reseña (al menos 10 caracteres).')).toBeVisible()
 
-    await page.locator('.score-picker__option', { hasText: /^0$/ }).click()
-    await page.getByLabel('Comentario').fill('No me convenció.')
-    await page.getByRole('button', { name: 'Publicar opinión' }).click()
+    await writeReview(page, { score: 0, hours: 3, text: 'No me convenció.' })
     await expect(page.getByText('¡Opinión publicada!')).toBeVisible()
     await expect(panel.getByText('1 voto de usuarios de Checkpoint')).toBeVisible()
     await expect(page.locator('.review-own')).toContainText('No me convenció.')
+    await expect(page.locator('.review-own')).toContainText('3 h jugadas')
     // La opinión propia no se repite en la lista de la comunidad.
     await expect(page.getByText('Por ahora, la única opinión es la tuya')).toBeVisible()
 
@@ -34,9 +35,7 @@ test.describe('opiniones con Firebase (emuladores)', () => {
 
     // Editar.
     await page.getByRole('button', { name: 'Editar' }).click()
-    await page.locator('.score-picker__option', { hasText: /^9$/ }).click()
-    await page.getByLabel('Comentario').fill('Lo rejugué y cambié de opinión.')
-    await page.getByRole('button', { name: 'Guardar cambios' }).click()
+    await writeReview(page, { score: 9, hours: 40, text: 'Lo rejugué y cambié de opinión.' })
     await expect(page.getByText('Tu opinión se actualizó.')).toBeVisible()
     await expect(page.locator('.score--community .score__value')).toContainText('9,0')
     await page.reload()
@@ -60,8 +59,7 @@ test.describe('opiniones con Firebase (emuladores)', () => {
     await mockRawg(page)
     const ana = await register(page, { name: 'Ana Dos' })
     await page.goto(GAME.replace('900003', '900004').replace('-3', '-4'))
-    await page.locator('.score-picker__option', { hasText: /^6$/ }).click()
-    await page.getByRole('button', { name: 'Publicar opinión' }).click()
+    await writeReview(page, { score: 6 })
     await expect(page.getByText('¡Opinión publicada!')).toBeVisible()
     await logout(page)
 
@@ -70,8 +68,7 @@ test.describe('opiniones con Firebase (emuladores)', () => {
     // La opinión de Ana se ve, pero Beto solo tiene su propio formulario.
     await expect(page.locator('.review-list')).toContainText('Ana Dos')
     await expect(page.locator('.review-own')).toHaveCount(0)
-    await page.locator('.score-picker__option', { hasText: /^9$/ }).click()
-    await page.getByRole('button', { name: 'Publicar opinión' }).click()
+    await writeReview(page, { score: 9 })
     await expect(page.locator('.score--community .score__value')).toContainText('7,5')
     await expect(page.getByText('2 votos de usuarios de Checkpoint')).toBeVisible()
     // El autor enlaza a su perfil público.

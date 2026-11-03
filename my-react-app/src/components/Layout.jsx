@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import Avatar from './Avatar.jsx'
 import Logo from './Logo.jsx'
+import { OnboardingProvider } from './Onboarding.jsx'
 
 function HeaderSearch({ onDone }) {
   const navigate = useNavigate()
@@ -226,9 +227,11 @@ export default function Layout() {
           </button>
         </div>
       </header>
-      <main id="contenido" tabIndex={-1}>
-        <Outlet />
-      </main>
+      <OnboardingProvider>
+        <main id="contenido" tabIndex={-1}>
+          <Outlet />
+        </main>
+      </OnboardingProvider>
       <footer className="site-footer">
         <div className="site-footer__inner">
           <div className="site-footer__top">

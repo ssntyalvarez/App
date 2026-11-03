@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import GameCard, { PlatformList } from '../components/GameCard.jsx'
 import GameImage from '../components/GameImage.jsx'
+import { TaskChecklist } from '../components/Onboarding.jsx'
 import ReviewList from '../components/ReviewList.jsx'
 import { CommunityScore, MetacriticScore } from '../components/Scores.jsx'
 import { CardSkeletons, EmptyState, ErrorState, FirebasePending, Spinner } from '../components/States.jsx'
@@ -160,6 +161,9 @@ export default function Home() {
       ) : (
         !popular.isPending && <Intro />
       )}
+      <div className="container home__tasks">
+        <TaskChecklist />
+      </div>
       {popular.isError && (
         <div className="container">
           <ErrorState error={popular.error} onRetry={() => popular.refetch()} />
