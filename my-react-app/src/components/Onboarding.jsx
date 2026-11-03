@@ -234,51 +234,49 @@ function GuideSpotlight() {
   )
 }
 
-// Lista de tareas en el inicio y en el perfil propio, mientras quede alguna pendiente.
+// Recordatorio compacto de tareas pendientes (inicio y perfil propio): una línea con la
+// próxima tarea; el resto se despliega solo si se pide.
 export function TaskChecklist() {
   const { user } = useAuth()
   const { ready, done, pending, start } = useOnboarding()
   if (!firebaseReady || !ready || pending.length === 0) return null
   const completed = TASKS.length - pending.length
+  const next = pending[0]
 
   return (
     <section className="checklist" aria-labelledby="checklist-title">
-      <div className="checklist__head">
-        <div>
-          <h2 id="checklist-title">Primeros pasos</h2>
-          <p className="muted">
-            {completed} de {TASKS.length} tareas completadas
-          </p>
-        </div>
-        <div className="checklist__bar" aria-hidden="true">
-          <span style={{ width: `${(completed / TASKS.length) * 100}%` }} />
-        </div>
+      <div className="checklist__row">
+        <span className="checklist__ring" style={{ '--p': completed / TASKS.length }} aria-hidden="true">
+          {completed}/{TASKS.length}
+        </span>
+        <p className="checklist__text">
+          <strong id="checklist-title">Primeros pasos</strong>
+          <span className="sr-only">: {completed} de {TASKS.length} tareas completadas.</span>
+          <span className="muted"> · Siguiente: {next.title}</span>
+        </p>
+        {next.id === 'account' && !user ? (
+          <span className="row checklist__cta">
+            <Link to="/registro" className="btn btn--primary btn--sm">Crear cuenta</Link>
+            <Link to="/ingresar" className="btn btn--ghost btn--sm">Ingresar</Link>
+          </span>
+        ) : (
+          <button type="button" className="btn btn--primary btn--sm checklist__cta" onClick={() => start(next.id)}>
+            Hacerlo
+          </button>
+        )}
       </div>
-      <ol className="checklist__list">
-        {TASKS.map((t) => (
-          <li key={t.id} className={done[t.id] ? 'is-done' : ''}>
-            <span className="checklist__check" aria-hidden="true">
-              {done[t.id] ? '✓' : ''}
-            </span>
-            <span className="checklist__text">
-              <strong>{t.title}</strong>
-              <span className="muted">{t.description}</span>
-            </span>
-            {done[t.id] ? (
-              <span className="sr-only">Completada</span>
-            ) : t.id === 'account' && !user ? (
-              <span className="row checklist__cta">
-                <Link to="/registro" className="btn btn--primary btn--sm">Crear cuenta</Link>
-                <Link to="/ingresar" className="btn btn--ghost btn--sm">Ingresar</Link>
-              </span>
-            ) : (
-              <button type="button" className="btn btn--ghost btn--sm checklist__cta" onClick={() => start(t.id)}>
-                Hacerlo
-              </button>
-            )}
-          </li>
-        ))}
-      </ol>
+      <details className="checklist__more">
+        <summary>Ver todas las tareas</summary>
+        <ol className="checklist__list">
+          {TASKS.map((t) => (
+            <li key={t.id} className={done[t.id] ? 'is-done' : ''}>
+              <span className="checklist__check" aria-hidden="true">{done[t.id] ? '✓' : ''}</span>
+              <span>{t.title}</span>
+              {done[t.id] && <span className="sr-only"> (completada)</span>}
+            </li>
+          ))}
+        </ol>
+      </details>
     </section>
   )
 }

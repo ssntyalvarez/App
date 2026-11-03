@@ -2542,7 +2542,7 @@ fieldset {
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 24px;
+  gap: 36px;
   align-items: end;
   margin-top: -72px;
 }
@@ -3167,6 +3167,419 @@ fieldset {
 .level__hint {
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+/* ---------- Perfil: nivel, datos y acciones ---------- */
+
+.profile-hero__avatar-wrap {
+  position: relative;
+  width: max-content;
+}
+
+/* Nivel sobre el avatar: solo el número; el detalle aparece al pasar el mouse. */
+.level-mark {
+  position: absolute;
+  right: -6px;
+  bottom: 2px;
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 3px solid var(--ring);
+  box-shadow: 0 0 0 4px var(--bg), var(--ring-glow, 0 0 0 transparent);
+  cursor: default;
+  outline: none;
+}
+
+.level-mark__num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.level-mark:focus-visible {
+  box-shadow: 0 0 0 4px var(--bg), 0 0 0 6px var(--lime);
+}
+
+.level-mark__tip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 260px;
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
+.level-mark__tip strong {
+  color: var(--ring);
+  font-size: 0.9rem;
+}
+
+.level-mark__bar {
+  display: block;
+  width: 180px;
+  height: 5px;
+  margin: 4px 0 2px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.level-mark__bar span {
+  display: block;
+  height: 100%;
+  background: var(--ring);
+}
+
+.level-mark:hover .level-mark__tip,
+.level-mark:focus-visible .level-mark__tip {
+  opacity: 1;
+}
+
+.profile-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  color: var(--text-soft);
+}
+
+.profile-hero .profile-hero__handle {
+  color: var(--muted);
+  font-family: var(--font-body);
+}
+
+.profile-hero__meta .dot {
+  color: var(--line-strong);
+}
+
+.meta-link strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.meta-link:hover strong {
+  color: var(--lime);
+}
+
+/* Datos del perfil como una franja tipográfica, sin tarjetas. */
+.scoreline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 0;
+  margin: 28px 0 0;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.scoreline > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 0 32px;
+  border-left: 1px solid var(--line);
+}
+
+.scoreline > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.scoreline dt {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.scoreline dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreline dd small {
+  font-size: 0.45em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .scoreline {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 0;
+  }
+
+  .scoreline > div,
+  .scoreline > div:first-child {
+    padding: 0 0 0 14px;
+    border-left: 2px solid var(--line);
+  }
+}
+
+.btn--light {
+  --btn-bg: var(--text);
+  --btn-fg: var(--bg);
+  --btn-border: var(--text);
+}
+
+.btn--light:hover:not(:disabled) {
+  --btn-bg: #fff;
+  --btn-border: #fff;
+}
+
+.btn--dark {
+  --btn-bg: var(--bg);
+  --btn-fg: var(--text);
+  --btn-border: var(--line-strong);
+}
+
+/* Nivel en el menú de la cuenta. */
+.level-summary {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 2px 4px 8px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.level-summary > div {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+}
+
+.level-summary strong {
+  color: var(--ring);
+}
+
+.level-summary__num {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2.5px solid var(--ring);
+  box-shadow: var(--ring-glow, none);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.level-summary__bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.level-summary__bar span {
+  display: block;
+  height: 100%;
+  background: var(--ring);
+}
+
+.level-summary__xp,
+.level-summary__how {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.account__menu {
+  min-width: 260px;
+}
+
+.follow-dialog {
+  width: min(460px, calc(100vw - 32px));
+  max-height: min(70vh, 640px);
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+  color: var(--text);
+}
+
+.follow-dialog::backdrop {
+  background: rgba(8, 8, 9, 0.7);
+}
+
+.follow-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 14px 0;
+}
+
+.follow-dialog__head .filter-chips {
+  padding-bottom: 0;
+}
+
+.follow-dialog__body {
+  padding: 14px;
+  overflow-y: auto;
+  max-height: calc(min(70vh, 640px) - 70px);
+}
+
+.people--stack {
+  grid-template-columns: 1fr;
+}
+
+.drawer__section-block {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.drawer__section-block h3 {
+  font-size: 1rem;
+}
+
+/* ---------- Chats flotantes ---------- */
+
+.chat-dock {
+  position: fixed;
+  z-index: 55;
+  right: 16px;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.chat-window {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius) var(--radius) 0 0;
+  border: 1px solid var(--line-strong);
+  border-bottom: 0;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  animation: toast-in 0.18s ease-out;
+}
+
+.chat-window__head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 6px 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.chat-window.is-min .chat-window__head {
+  border-bottom: 0;
+}
+
+.chat-window__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 2px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.chat-window__title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-window__btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.chat-window__btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.chat-window__btn svg,
+.icon-btn--chat svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chat--compact {
+  height: 380px;
+  border: 0;
+  border-radius: 0;
+}
+
+.icon-btn--chat {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.icon-btn--chat:hover {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+
+@media (max-width: 640px) {
+  .chat-dock {
+    left: 8px;
+    right: 8px;
+  }
+
+  .chat-window {
+    width: 100%;
+  }
+
+  .chat-window:not(:last-child) {
+    display: none;
+  }
 }
 
 /* ---------- Social ---------- */
@@ -4387,78 +4800,90 @@ fieldset {
 }
 
 .home__tasks:has(.checklist) {
-  padding-top: 32px;
+  padding-top: 20px;
 }
 
+/* Recordatorio de primeros pasos: una sola línea, sin competir con el contenido. */
 .checklist {
-  margin-top: 28px;
-  padding: 22px;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
+  margin-top: 20px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
-  display: grid;
-  gap: 16px;
+  background: var(--bg-raised);
 }
 
 .home__tasks .checklist {
   margin-top: 0;
 }
 
-.checklist__head {
+.checklist__row {
   display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  justify-content: space-between;
+  align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
-.checklist__head h2 {
-  font-size: 1.4rem;
+.checklist__ring {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background:
+    radial-gradient(closest-side, var(--bg-raised) 78%, transparent 80%),
+    conic-gradient(var(--lime) calc(var(--p) * 100%), var(--surface-3) 0);
 }
 
-.checklist__bar {
-  width: min(240px, 100%);
-  height: 6px;
-  border-radius: 3px;
-  background: var(--surface-3);
-  overflow: hidden;
+.checklist__text {
+  flex: 1;
+  min-width: 180px;
+  font-size: 0.92rem;
 }
 
-.checklist__bar span {
-  display: block;
-  height: 100%;
-  background: var(--lime);
-  border-radius: 3px;
-  transition: width 0.3s;
+.checklist__more {
+  margin-top: 6px;
+  padding-left: 50px;
+  font-size: 0.85rem;
+}
+
+.checklist__more summary {
+  cursor: pointer;
+  color: var(--muted);
+  width: max-content;
 }
 
 .checklist__list {
   list-style: none;
-  margin: 0;
+  margin: 8px 0 4px;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .checklist__list li {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 14px;
+  display: flex;
   align-items: center;
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
+  gap: 10px;
 }
 
 .checklist__check {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   border: 2px solid var(--line-strong);
-  font-size: 0.8rem;
+  font-size: 0.65rem;
   font-weight: 800;
+}
+
+.checklist__list li.is-done {
+  color: var(--muted);
+  text-decoration: line-through;
 }
 
 .checklist__list li.is-done .checklist__check {
@@ -4467,31 +4892,6 @@ fieldset {
   color: var(--ink-on-lime);
 }
 
-.checklist__list li.is-done strong {
-  color: var(--muted);
-  text-decoration: line-through;
-}
-
-.checklist__text {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.checklist__text .muted {
-  font-size: 0.85rem;
-}
-
-@media (max-width: 560px) {
-  .checklist__list li {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .checklist__cta {
-    grid-column: 2;
-    justify-self: start;
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *,

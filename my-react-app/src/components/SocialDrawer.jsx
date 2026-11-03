@@ -5,9 +5,12 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useConnections, useProfile } from '../lib/hooks.js'
 import Avatar from './Avatar.jsx'
 import { LevelChip } from './LevelBadge.jsx'
+import { Suggestions } from './Social.jsx'
+import { useOpenChat } from './ChatDock.jsx'
 import { Spinner } from './States.jsx'
 
 function FriendRow({ uid, filter, onNavigate }) {
+  const openChat = useOpenChat()
   const { data: profile } = useProfile(uid)
   if (!profile) return null
   const f = filter.trim().toLowerCase().replace(/^@/, '')
@@ -21,9 +24,19 @@ function FriendRow({ uid, filter, onNavigate }) {
           <span className="muted">@{profile.handle}</span>
         </span>
       </Link>
-      <Link to={`/mensajes/${profile.handle}`} className="btn btn--ghost btn--sm" onClick={onNavigate}>
-        Chat
-      </Link>
+      <button
+        type="button"
+        className="icon-btn icon-btn--chat"
+        onClick={() => {
+          openChat(profile)
+          onNavigate()
+        }}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 5h16v11H9l-5 4z" />
+        </svg>
+        <span className="sr-only">Chatear con {profile.displayName}</span>
+      </button>
     </li>
   )
 }
@@ -112,16 +125,15 @@ export default function SocialDrawer() {
             <ul className="drawer-friends">
               {friends.map((uid) => <FriendRow key={uid} uid={uid} filter={filter} onNavigate={close} />)}
             </ul>
+          ) : connections.isError ? (
+            <p className="form-error">No se pudo cargar tu lista de amigos.</p>
           ) : (
             <p className="muted">
               Todavía no tenés amigos. Seguí a otras personas: cuando te sigan también, aparecen acá.
             </p>
           )}
+          <Suggestions uid={user.uid} connections={connections} />
         </section>
-        <footer className="drawer__foot">
-          <Link to="/mensajes" className="btn btn--ghost btn--sm" onClick={close}>Todas las conversaciones</Link>
-          <Link to="/personas" className="btn btn--ghost btn--sm" onClick={close}>Explorar personas</Link>
-        </footer>
       </aside>
           </>,
           document.body,
