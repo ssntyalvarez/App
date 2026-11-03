@@ -5,6 +5,8 @@ import { useToast } from '../context/ToastContext.jsx'
 import Avatar from './Avatar.jsx'
 import Logo from './Logo.jsx'
 import SocialDrawer from './SocialDrawer.jsx'
+import { ChatDockProvider } from './ChatDock.jsx'
+import { LevelSummary } from './LevelBadge.jsx'
 import { OnboardingProvider } from './Onboarding.jsx'
 
 function HeaderSearch({ onDone }) {
@@ -118,6 +120,7 @@ function AccountMenu() {
             <strong>{profile?.displayName || 'Tu cuenta'}</strong>
             {profile && <span className="muted">@{profile.handle}</span>}
           </div>
+          <LevelSummary uid={user.uid} />
           {accountLinks(profile).map((l) => (
             <Link key={l.label} to={l.to} onClick={() => setOpen(false)}>{l.label}</Link>
           ))}
@@ -188,7 +191,7 @@ export default function Layout() {
     })
 
   return (
-    <>
+    <ChatDockProvider>
       <a href="#contenido" className="skip-link">Saltar al contenido</a>
       {navigation.state === 'loading' && (
         <div className="route-progress" role="progressbar" aria-label="Cargando página" />
@@ -250,6 +253,6 @@ export default function Layout() {
         </div>
       </footer>
       <ScrollRestoration />
-    </>
+    </ChatDockProvider>
   )
 }

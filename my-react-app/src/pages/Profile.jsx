@@ -5,14 +5,14 @@ import Avatar from '../components/Avatar.jsx'
 import EntryEditor from '../components/EntryEditor.jsx'
 import GameImage from '../components/GameImage.jsx'
 import { TaskChecklist } from '../components/Onboarding.jsx'
-import { FollowButton, MessageButton, SocialTab } from '../components/Social.jsx'
-import LevelBadge from '../components/LevelBadge.jsx'
+import { FollowButton, FollowListDialog, MessageButton } from '../components/Social.jsx'
+import { CogIcon, LevelMark } from '../components/LevelBadge.jsx'
 import { PersonalScore } from '../components/Scores.jsx'
 import { EmptyState, ErrorState, FirebasePending, Spinner } from '../components/States.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
-import { formatAverage, formatDate, formatMonth, gamePath } from '../lib/format.js'
+import { formatAverage, formatDate, gamePath } from '../lib/format.js'
 import { invalidateProfileData, invalidateReviewData, useConnections, useDocumentTitle, useLibrary, useProfileByHandle, useUserReviews } from '../lib/hooks.js'
 import { MAX_FEATURED } from '../lib/library.js'
 import { useLibraryActions } from '../lib/libraryActions.js'
@@ -196,13 +196,16 @@ function ReviewsTab({ reviews, isOwner }) {
   )
 }
 
+// Cantidad de una lista de conexiones: '…' mientras carga y '—' si no se pudo consultar.
+const count = (q, key) => (q.isError ? '—' : (q.data?.[key].length ?? '…'))
+
 export default function Profile() {
   const { handle } = useParams()
   const { user, profile: ownProfile } = useAuth()
   const [params, setParams] = useSearchParams()
-  const TABS = ['biblioteca', 'resenas', 'amigos']
+  const TABS = ['biblioteca', 'resenas']
   const tab = TABS.includes(params.get('tab')) ? params.get('tab') : 'biblioteca'
-  const list = ['seguidores', 'seguidos'].includes(params.get('lista')) ? params.get('lista') : 'amigos'
+  const [followList, setFollowList] = useState(null)
 
   const profileQ = useProfileByHandle(handle)
   useDocumentTitle(profileQ.data ? `${profileQ.data.displayName} (@${profileQ.data.handle})` : 'Perfil')
@@ -252,54 +255,46 @@ export default function Profile() {
       <header className="profile-hero">
         <div className="profile-hero__cover is-default" aria-hidden="true" />
         <div className="container profile-hero__inner">
-          {isOwner ? (
-            <EditableAvatar profile={profile} />
-          ) : (
-            <Avatar profile={profile} size={132} className="profile-hero__avatar" />
-          )}
+          <div className="profile-hero__avatar-wrap">
+            {isOwner ? (
+              <EditableAvatar profile={profile} />
+            ) : (
+              <Avatar profile={profile} size={132} className="profile-hero__avatar" />
+            )}
+            {reviews.isSuccess && <LevelMark level={level} />}
+          </div>
           <div className="profile-hero__text">
             <h1>{profile.displayName}</h1>
-            {reviews.isSuccess && <LevelBadge level={level} isOwner={isOwner} />}
-            <p className="profile-hero__handle">
-              @{profile.handle}
-              {profile.createdAt && <span className="muted"> · En Checkpoint desde {formatMonth(profile.createdAt)}</span>}
-            </p>
-            {showFollows && (
-              <p className="follow-counts">
-                {[
-                  ['seguidores', connections.data?.followers.length, 'seguidores', 'seguidor'],
-                  ['seguidos', connections.data?.following.length, 'seguidos', 'seguido'],
-                  ['amigos', connections.data?.friends.length, 'amigos', 'amigo'],
-                ].map(([value, n, many, one]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className="link-plain follow-counts__item"
-                    onClick={() => {
-                      const next = new URLSearchParams(window.location.search)
-                      next.set('tab', 'amigos')
-                      if (value === 'amigos') next.delete('lista')
-                      else next.set('lista', value)
-                      setParams(next, { replace: true, preventScrollReset: true })
-                      document.getElementById('tab-amigos')?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-                    }}
-                  >
-                    <strong>{n ?? '…'}</strong> {n === 1 ? one : many}
+            <p className="profile-hero__meta">
+              <span className="profile-hero__handle">@{profile.handle}</span>
+              {showFollows && (
+                <>
+                  <span aria-hidden="true" className="dot">·</span>
+                  <button type="button" className="link-plain meta-link" onClick={() => setFollowList('seguidores')}>
+                    <strong>{count(connections, 'followers')}</strong> {connections.data?.followers.length === 1 ? 'seguidor' : 'seguidores'}
                   </button>
-                ))}
-              </p>
+                  <span aria-hidden="true" className="dot">·</span>
+                  <button type="button" className="link-plain meta-link" onClick={() => setFollowList('seguidos')}>
+                    <strong>{count(connections, 'following')}</strong> {connections.data?.following.length === 1 ? 'seguido' : 'seguidos'}
+                  </button>
+                </>
+              )}
+            </p>
+            {profile.bio ? (
+              <p className="profile-hero__bio">{profile.bio}</p>
+            ) : (
+              isOwner && <p className="muted">Todavía no escribiste una biografía.</p>
             )}
-            {profile.bio ? <p className="profile-hero__bio">{profile.bio}</p> : isOwner && <p className="muted">Todavía no escribiste una biografía.</p>}
           </div>
           <div className="profile-hero__actions">
             {isOwner ? (
-              <Link to="/configuracion" className="btn btn--ghost icon-only" title="Configuración">
-                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                  <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
-                  <path d="M12 2.5v3M12 18.5v3M4.2 6.2l2.1 2.1M17.7 15.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 17.8l2.1-2.1M17.7 8.3l2.1-2.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-                <span className="sr-only">Configuración</span>
-              </Link>
+              <>
+                <Link to="/configuracion" className="btn btn--light">Editar perfil</Link>
+                <Link to="/configuracion?seccion=cuenta" className="btn btn--dark icon-only" title="Configuración de la cuenta">
+                  <CogIcon />
+                  <span className="sr-only">Configuración de la cuenta</span>
+                </Link>
+              </>
             ) : (
               <>
                 <FollowButton profile={profile} />
@@ -312,38 +307,39 @@ export default function Profile() {
       </header>
 
       <div className="container">
-        <dl className="stats" aria-busy={loadingData}>
-          {showHours && (
-            <div>
-              <dt>Horas jugadas{isOwner && !settings.showHours ? ' (solo vos)' : ''}</dt>
-              <dd>{reviews.isPending ? '…' : hours.toLocaleString('es-AR')}</dd>
-            </div>
-          )}
+        <dl className="scoreline" aria-busy={loadingData}>
           <div>
             <dt>Reseñas</dt>
             <dd>{reviews.isPending ? '…' : reviewList.length}</dd>
           </div>
           <div>
-            <dt>{isOwner ? 'Promedio de tus notas' : 'Promedio de sus notas'}</dt>
+            <dt>{isOwner ? 'Tu promedio' : 'Su promedio'}</dt>
             <dd>
               {reviews.isPending ? '…' : formatAverage(avg)}
               {avg != null && <small>/10</small>}
             </dd>
           </div>
-          <div>
-            <dt>En biblioteca</dt>
-            <dd>{library.isPending ? '…' : entries.length}</dd>
-          </div>
-          {showFollows && (
+          {showHours && (
             <div>
-              <dt>Seguidores · Amigos</dt>
-              <dd>
-                {connections.data ? connections.data.followers.length : '…'}
-                <small> · {connections.data ? connections.data.friends.length : '…'}</small>
-              </dd>
+              <dt>Horas jugadas{isOwner && !settings.showHours ? ' · solo vos' : ''}</dt>
+              <dd>{reviews.isPending ? '…' : hours.toLocaleString('es-AR')}</dd>
             </div>
           )}
+          <div>
+            <dt>Favoritos</dt>
+            <dd>{library.isPending ? '…' : entries.length}</dd>
+          </div>
         </dl>
+
+        {followList && (
+          <FollowListDialog
+            profile={profile}
+            connections={connections}
+            list={followList}
+            onChange={setFollowList}
+            onClose={() => setFollowList(null)}
+          />
+        )}
 
         {isOwner && <TaskChecklist />}
 
@@ -398,9 +394,6 @@ export default function Profile() {
           <button type="button" role="tab" id="tab-resenas" aria-controls="panel-resenas" aria-selected={tab === 'resenas'} tabIndex={tab === 'resenas' ? 0 : -1} onClick={() => setParam('tab', 'resenas')}>
             Reseñas <span className="pill">{reviewList.length}</span>
           </button>
-          <button type="button" role="tab" id="tab-amigos" aria-controls="panel-amigos" aria-selected={tab === 'amigos'} tabIndex={tab === 'amigos' ? 0 : -1} onClick={() => setParam('tab', 'amigos')}>
-            Amigos {showFollows && <span className="pill">{connections.data?.friends.length ?? '…'}</span>}
-          </button>
         </div>
 
         {tab === 'biblioteca' ? (
@@ -439,16 +432,6 @@ export default function Profile() {
                 ) : null}
               </>
             )}
-          </section>
-        ) : tab === 'amigos' ? (
-          <section id="panel-amigos" role="tabpanel" aria-labelledby="tab-amigos" className="tab-panel">
-            <SocialTab
-              profile={profile}
-              isOwner={isOwner}
-              connections={connections}
-              list={list}
-              onListChange={(v) => setParam('lista', v === 'amigos' ? '' : v)}
-            />
           </section>
         ) : (
           <section id="panel-resenas" role="tabpanel" aria-labelledby="tab-resenas" className="tab-panel">

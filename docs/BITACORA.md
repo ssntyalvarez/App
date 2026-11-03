@@ -239,6 +239,17 @@ A pedido del autor se simplificó el modelo:
 - Dificultades: (1) el panel medía 68 px de alto porque el encabezado usa `backdrop-filter`, que convierte al encabezado en el contenedor de los elementos fijos; se resolvió montando el panel en `<body>` con un portal. (2) En celular, el panel cerrado (desplazado fuera de la pantalla) ensanchaba la página y el navegador la achicaba; ahora el panel solo existe mientras está abierto. (3) Una prueba buscaba el botón “Amigos” y Playwright aceptaba también “0 amigos” al comparar parte del texto; se usó coincidencia exacta.
 - Pruebas: 34 unitarias, 32 de reglas y 25 de punta a punta.
 
+### Rediseño del perfil (jerarquía y limpieza)
+A partir de la crítica del autor (“mucho ruido”, “no todo se resuelve con cards”), tomando como referencia Twitter, Instagram y Twitch:
+- **Nombre al lado de la foto**, con más aire. Debajo, una sola línea: alias en gris · N seguidores · N seguidos. Cada contador abre la lista en una ventana; se quitaron la fecha de alta y la pestaña “Amigos” del perfil.
+- **Nivel sobre el avatar:** solo el número dentro del anillo de color. Al pasar el mouse (o enfocarlo) aparece una tarjeta flotante con rango, barra y XP. El detalle completo también está en el menú “Mi cuenta”.
+- **Datos como franja tipográfica** (reseñas, promedio, horas, favoritos) en lugar de tarjetas.
+- **Acciones:** “Editar perfil” en blanco y, aparte, un engranaje en negativo para la configuración de la cuenta.
+- **Primeros pasos** reducido a una línea con progreso circular y la próxima tarea; la lista completa se despliega solo si se pide.
+- **Social:** “Amigos de amigos” pasó al panel Social, debajo de los amigos. Cada amigo tiene un botón de chat que abre una **ventana flotante** abajo a la derecha (como Twitch), que se puede minimizar, cerrar o abrir en pantalla completa. “Mensaje” en un perfil también abre la ventana flotante.
+- Se verificó contra el Firestore real que la colección `follows` devuelve “permiso denegado”: las reglas publicadas eran anteriores a la parte social (por eso los contadores quedaban en “…”). Ahora, si la consulta falla, se muestra “—” en lugar de cargar sin fin.
+- Pruebas: 34 unitarias, 32 de reglas y 25 de punta a punta.
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)

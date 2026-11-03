@@ -1,14 +1,15 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { invalidateSocialData, useConnections, useProfile, useSuggestions } from '../lib/hooks.js'
 import { firestoreMessage } from '../lib/profiles.js'
-import { canMessage, follow, settingsOf, unfollow } from '../lib/social.js'
+import { canMessage, follow, unfollow } from '../lib/social.js'
 import Avatar from './Avatar.jsx'
 import { LevelChip } from './LevelBadge.jsx'
-import { EmptyState, Spinner } from './States.jsx'
+import { Spinner } from './States.jsx'
+import { useOpenChat } from './ChatDock.jsx'
 
 export function FollowButton({ profile, size = '' }) {
   const { user } = useAuth()
@@ -47,7 +48,7 @@ export function FollowButton({ profile, size = '' }) {
 
 export function MessageButton({ profile }) {
   const { user } = useAuth()
-  const navigate = useNavigate()
+  const openChat = useOpenChat()
   const notify = useToast()
   const [checking, setChecking] = useState(false)
   if (!user) return null
@@ -60,7 +61,7 @@ export function MessageButton({ profile }) {
         setChecking(true)
         try {
           const { allowed } = await canMessage(user.uid, profile.uid, profile)
-          if (allowed) navigate(`/mensajes/${profile.handle}`)
+          if (allowed) openChat(profile)
           else notify(`${profile.displayName} no recibe mensajes de personas que no son sus amigos.`, 'error')
         } catch (err) {
           notify(firestoreMessage(err, 'No se pudo abrir el chat.'), 'error')
@@ -94,75 +95,81 @@ export function PersonRow({ uid, note }) {
 }
 
 const LISTS = [
-  { value: 'amigos', label: 'Amigos', key: 'friends' },
-  { value: 'seguidores', label: 'Seguidores', key: 'followers' },
-  { value: 'seguidos', label: 'Seguidos', key: 'following' },
+  { value: 'seguidores', label: 'Seguidores', key: 'followers', empty: 'Todavía nadie sigue este perfil.' },
+  { value: 'seguidos', label: 'Seguidos', key: 'following', empty: 'Todavía no sigue a nadie.' },
 ]
 
-// Pestaña “Amigos” del perfil: amigos, seguidores, seguidos y (en el propio) amigos de amigos.
-export function SocialTab({ profile, isOwner, connections, list = 'amigos', onListChange }) {
-  const setList = onListChange
-  const suggestions = useSuggestions(isOwner ? profile.uid : null, connections.data)
-  const hidden = !isOwner && !settingsOf(profile).showFollows
-  const active = LISTS.find((l) => l.value === list)
+// Ventana con los seguidores o seguidos de un perfil (se abre desde los contadores).
+export function FollowListDialog({ profile, connections, list, onChange, onClose }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!ref.current?.open) ref.current?.showModal()
+  }, [])
+  const active = LISTS.find((l) => l.value === list) ?? LISTS[0]
   const uids = connections.data?.[active.key] ?? []
-
-  if (hidden) {
-    return (
-      <EmptyState title="Lista privada">
-        <p>{profile.displayName} eligió no mostrar sus seguidores y seguidos.</p>
-      </EmptyState>
-    )
-  }
-
   return (
-    <div className="social-tab">
-      <div className="filter-chips" role="group" aria-label="Lista">
-        {LISTS.map((l) => (
-          <button
-            key={l.value}
-            type="button"
-            className={`chip ${list === l.value ? 'is-active' : ''}`}
-            aria-pressed={list === l.value}
-            onClick={() => setList(l.value)}
-          >
-            {l.label} <span>{connections.data?.[l.key].length ?? '…'}</span>
-          </button>
-        ))}
+    <dialog
+      ref={ref}
+      className="follow-dialog"
+      aria-label={`${active.label} de ${profile.displayName}`}
+      onClose={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) ref.current.close()
+      }}
+    >
+      <header className="follow-dialog__head">
+        <div className="filter-chips" role="group" aria-label="Lista">
+          {LISTS.map((l) => (
+            <button
+              key={l.value}
+              type="button"
+              className={`chip ${list === l.value ? 'is-active' : ''}`}
+              aria-pressed={list === l.value}
+              onClick={() => onChange(l.value)}
+            >
+              {l.label} <span>{connections.data?.[l.key].length ?? '…'}</span>
+            </button>
+          ))}
+        </div>
+        <button type="button" className="toast__close" onClick={() => ref.current.close()} aria-label="Cerrar">×</button>
+      </header>
+      <div className="follow-dialog__body">
+        {connections.isPending ? (
+          <Spinner />
+        ) : connections.isError ? (
+          <p className="form-error">No se pudo cargar la lista.</p>
+        ) : uids.length ? (
+          <ul className="people people--stack">
+            {uids.map((uid) => <PersonRow key={uid} uid={uid} />)}
+          </ul>
+        ) : (
+          <p className="muted">{active.empty}</p>
+        )}
       </div>
-      {connections.isPending ? (
+    </dialog>
+  )
+}
+
+// Amigos de amigos que todavía no seguís (en el panel Social).
+export function Suggestions({ uid, connections }) {
+  const suggestions = useSuggestions(uid, connections.data)
+  if (connections.isError) return null
+  return (
+    <section className="drawer__section-block" aria-labelledby="sugerencias">
+      <h3 id="sugerencias">Amigos de amigos</h3>
+      {suggestions.isPending ? (
         <Spinner />
-      ) : uids.length ? (
-        <ul className="people">
-          {uids.map((uid) => <PersonRow key={uid} uid={uid} />)}
+      ) : suggestions.isError ? (
+        <p className="muted">No se pudieron cargar las sugerencias.</p>
+      ) : suggestions.data.length ? (
+        <ul className="people people--stack">
+          {suggestions.data.map((s) => (
+            <PersonRow key={s.uid} uid={s.uid} note={`${s.mutual.length} en común`} />
+          ))}
         </ul>
       ) : (
-        <p className="hint-box">
-          {list === 'amigos'
-            ? 'Cuando dos personas se siguen mutuamente, son amigas.'
-            : list === 'seguidores'
-              ? 'Todavía nadie sigue este perfil.'
-              : 'Todavía no sigue a nadie.'}
-        </p>
+        <p className="muted">Cuando tengas amigos, acá vas a ver a sus amigos.</p>
       )}
-
-      {isOwner && (
-        <section className="section" aria-labelledby="sugerencias">
-          <h2 id="sugerencias" className="section__title">Amigos de amigos</h2>
-          <p className="muted">Personas que son amigas de tus amigos y todavía no seguís.</p>
-          {suggestions.isPending ? (
-            <Spinner />
-          ) : suggestions.data?.length ? (
-            <ul className="people">
-              {suggestions.data.map((s) => (
-                <PersonRow key={s.uid} uid={s.uid} note={`${s.mutual.length} ${s.mutual.length === 1 ? 'amigo' : 'amigos'} en común`} />
-              ))}
-            </ul>
-          ) : (
-            <p className="hint-box">Cuando tengas amigos, acá vas a ver a sus amigos.</p>
-          )}
-        </section>
-      )}
-    </div>
+    </section>
   )
 }

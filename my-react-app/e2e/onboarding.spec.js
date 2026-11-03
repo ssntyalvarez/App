@@ -45,7 +45,8 @@ test.describe('tutorial de primeros pasos', () => {
     await expect(page.getByRole('dialog')).toBeHidden()
 
     // Desde la lista, “Hacerlo” lleva al lugar y lo resalta.
-    await list.locator('li', { hasText: 'Agregá tus juegos favoritos' }).getByRole('button', { name: 'Hacerlo' }).click()
+    await expect(list).toContainText('Siguiente: Agregá tus juegos favoritos')
+    await list.getByRole('button', { name: 'Hacerlo' }).click()
     await expect(page).toHaveURL(/\/configuracion#favoritos$/)
     await expect(page.locator('.spotlight')).toBeVisible()
     await page.getByLabel('Agregar un juego').fill('Alfa')
