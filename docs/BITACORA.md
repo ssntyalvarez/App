@@ -210,6 +210,14 @@ Dificultades:
 - **Cambiar la foto desde el perfil:** al pasar el mouse (o enfocar con el teclado) sobre el avatar propio aparece “Cambiar foto”. En pantallas táctiles se muestra un botón pequeño fijo.
 - Pruebas: 21/21 de punta a punta (nuevas: ojito, cambio de foto y nombre sin mayúsculas forzadas).
 
+### Biblioteca de favoritos y opiniones estilo Steam
+A pedido del autor se simplificó el modelo:
+- **Biblioteca = juegos favoritos.** Se agregan con un botón (corazón) desde la ficha o desde **Editar perfil → Tus juegos favoritos**, que incluye un buscador del catálogo. Se quitaron los estados (Quiero jugar, Jugando, Completado, Abandonado) y la fecha de finalización. Se mantienen los hasta 4 destacados.
+- **Opinión estilo Steam:** horas jugadas (obligatorio, entero), puntuación 0–10 y reseña escrita (10–2000 caracteres). Cada reseña muestra “X h jugadas”. En el perfil, “Completados” pasó a **Horas jugadas** (suma de las horas de sus reseñas).
+- **Alias:** después de cambiarlo hay que esperar una semana para volver a cambiarlo (`handleChangedAt`, controlado también por las reglas).
+- **Editar perfil:** sin “Imagen de portada”; la foto se cambia pasando el mouse sobre el avatar de la vista previa.
+- Reglas reescritas para el nuevo formato (reseñas con `playtimeHours`, biblioteca sin estados, espera del alias). Pruebas: 25 de reglas, 30 unitarias y 21 de punta a punta.
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)

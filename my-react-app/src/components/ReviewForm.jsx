@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { invalidateReviewData } from '../lib/hooks.js'
 import { firestoreMessage } from '../lib/profiles.js'
-import { MAX_REVIEW_LENGTH, deleteReview, saveReview, validateReview } from '../lib/reviews.js'
+import { deleteReview, formatHours, MAX_REVIEW_LENGTH, saveReview, validateReview } from '../lib/reviews.js'
 
 const SCORES = Array.from({ length: 11 }, (_, i) => i)
 
@@ -18,11 +18,12 @@ export default function ReviewForm({ game, existing }) {
   const [editing, setEditing] = useState(!existing)
   const [score, setScore] = useState(existing?.score ?? null)
   const [text, setText] = useState(existing?.text ?? '')
+  const [hours, setHours] = useState(existing?.playtimeHours != null ? String(existing.playtimeHours) : '')
   const [errors, setErrors] = useState({})
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const save = useMutation({
-    mutationFn: () => saveReview({ uid: user.uid, game, score, text, existing }),
+    mutationFn: () => saveReview({ uid: user.uid, game, score, text, hours, existing }),
     onSuccess: () => {
       notify(existing ? 'Tu opinión se actualizó.' : '¡Opinión publicada!')
       setEditing(false)
@@ -81,6 +82,7 @@ export default function ReviewForm({ game, existing }) {
               onClick={() => {
                 setScore(existing.score)
                 setText(existing.text)
+                setHours(existing.playtimeHours != null ? String(existing.playtimeHours) : '')
                 setEditing(true)
               }}
               disabled={busy}
@@ -107,8 +109,9 @@ export default function ReviewForm({ game, existing }) {
         <p className="review-own__score">
           <span className="big-number">{existing.score}</span>
           <span className="muted">/10</span>
+          {existing.playtimeHours != null && <span className="playtime">{formatHours(existing.playtimeHours)}</span>}
         </p>
-        {existing.text ? <p className="review-own__text">{existing.text}</p> : <p className="muted">Sin comentario.</p>}
+        {existing.text ? <p className="review-own__text">{existing.text}</p> : <p className="muted">Sin reseña escrita.</p>}
       </div>
     )
   }
@@ -116,7 +119,7 @@ export default function ReviewForm({ game, existing }) {
   const onSubmit = (e) => {
     e.preventDefault()
     if (busy) return
-    const errs = validateReview({ score, text })
+    const errs = validateReview({ score, text, hours })
     setErrors(errs)
     if (Object.keys(errs).length) return
     save.mutate()
@@ -125,6 +128,23 @@ export default function ReviewForm({ game, existing }) {
   return (
     <form className="review-form" onSubmit={onSubmit} noValidate>
       <h3>{existing ? 'Editar tu opinión' : 'Escribí tu opinión'}</h3>
+      <div className="field field--hours">
+        <label htmlFor="review-hours">Horas jugadas</label>
+        <div className="input-suffix">
+          <input
+            id="review-hours"
+            inputMode="numeric"
+            value={hours}
+            onChange={(e) => setHours(e.target.value.replace(/\D/g, '').slice(0, 5))}
+            placeholder="0"
+            disabled={busy}
+            aria-invalid={errors.hours ? 'true' : undefined}
+            aria-describedby={errors.hours ? 'hours-error' : undefined}
+          />
+          <span aria-hidden="true">h</span>
+        </div>
+        {errors.hours && <p id="hours-error" className="form-error">{errors.hours}</p>}
+      </div>
       <fieldset className="score-picker" aria-describedby={errors.score ? 'score-error' : undefined}>
         <legend>
           Tu puntuación <span className="muted">(0 a 10)</span>
@@ -148,17 +168,16 @@ export default function ReviewForm({ game, existing }) {
       </fieldset>
 
       <div className="field">
-        <label htmlFor="review-text">
-          Comentario <span className="muted">(opcional)</span>
-        </label>
+        <label htmlFor="review-text">Tu reseña</label>
         <textarea
           id="review-text"
           rows={5}
           value={text}
           onChange={(e) => setText(e.target.value)}
           maxLength={MAX_REVIEW_LENGTH}
-          placeholder="¿Qué te gustó? ¿Qué cambiarías?"
+          placeholder="¿Qué te gustó? ¿Qué cambiarías? ¿Lo recomendarías?"
           disabled={busy}
+          aria-invalid={errors.text ? 'true' : undefined}
           aria-describedby="review-count"
         />
         <p id="review-count" className={`field__hint ${text.length > MAX_REVIEW_LENGTH - 100 ? 'is-warning' : ''}`}>

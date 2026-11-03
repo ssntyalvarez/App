@@ -6,7 +6,8 @@ Aplicación web para **descubrir videojuegos, comparar puntuaciones y opinar**, 
 - Dos puntuaciones separadas: **Metacritic · vía RAWG** (0–100) y **Comunidad Checkpoint** (promedio 0–10 de las opiniones reales de esta app, con cantidad de votos).
 - Cuentas con **Firebase Authentication** (correo y contraseña) y opiniones guardadas en **Cloud Firestore**: crear, editar y eliminar, con una opinión por usuario y juego.
 - **Perfiles públicos** en `/u/<alias>` con portada, avatar, biografía, estadísticas, hasta 4 juegos destacados y grilla con filtros por estado.
-- **Biblioteca personal:** Quiero jugar, Jugando, Completado (con fecha opcional) y Abandonado; favoritos. La nota personal se toma siempre de la reseña del usuario.
+- **Biblioteca personal:** los juegos que te gustan, con hasta 4 destacados en el perfil. Se agregan desde la ficha o desde Editar perfil.
+- **Opiniones estilo Steam:** horas jugadas, puntuación de 0 a 10 y una reseña escrita. La nota y las horas de cada juego del perfil salen siempre de tu reseña.
 
 La evolución por iteraciones, las pruebas, las dificultades y la justificación del diseño están en la [bitácora](docs/BITACORA.md).
 
@@ -89,10 +90,10 @@ No hace falta el plan Blaze ni Firebase Storage: el avatar se comprime en el nav
 
 | Colección | Contenido | Quién escribe |
 | --- | --- | --- |
-| `users/{uid}` | Perfil público: nombre, alias, bio, avatar, portada, destacados | Solo el dueño |
+| `users/{uid}` | Perfil público: nombre, alias (cambio cada 7 días como mínimo), bio, avatar, destacados | Solo el dueño |
 | `handles/{alias}` | `{ uid }` para alias únicos y URLs de perfil | Solo el dueño |
-| `reviews/{gameId}_{uid}` | Puntuación 0–10, comentario y datos básicos del juego | Solo el autor |
-| `libraries/{uid}/games/{gameId}` | Estado, favorito, fecha de finalización y datos básicos del juego | Solo el dueño |
+| `reviews/{gameId}_{uid}` | Horas jugadas, puntuación 0–10, reseña (10–2000 caracteres) y datos básicos del juego | Solo el autor |
+| `libraries/{uid}/games/{gameId}` | Juego favorito (datos básicos del juego) | Solo el dueño |
 
 Todo es de lectura pública; el correo y la contraseña quedan en Firebase Authentication y nunca se guardan en Firestore.
 

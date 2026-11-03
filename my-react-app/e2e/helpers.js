@@ -30,3 +30,11 @@ export async function logout(page) {
   await page.locator('.account__menu').getByRole('button', { name: 'Cerrar sesión' }).click()
   await expect(page.locator('.site-header').getByRole('link', { name: 'Ingresar' })).toBeVisible()
 }
+
+// Publica una opinión estilo Steam: horas jugadas, puntuación y reseña.
+export async function writeReview(page, { score, hours = 12, text = 'Una reseña de prueba con suficiente texto.' }) {
+  await page.getByLabel('Horas jugadas').fill(String(hours))
+  await page.locator('.score-picker__option', { hasText: new RegExp(`^${score}$`) }).click()
+  await page.getByLabel('Tu reseña').fill(text)
+  await page.getByRole('button', { name: /Publicar opinión|Guardar cambios/ }).click()
+}

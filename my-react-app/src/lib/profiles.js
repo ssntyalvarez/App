@@ -5,6 +5,8 @@ import { db } from './firebase.js'
 // Alias al estilo de Instagram: letras, números, guion bajo y puntos; de 3 a 30 caracteres;
 // sin punto al principio, al final ni dos seguidos.
 export const MAX_HANDLE = 30
+// Tiempo de espera entre dos cambios de alias (también lo exigen las reglas de Firestore).
+export const HANDLE_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000
 export const HANDLE_PATTERN = /^(?=.{3,30}$)[a-z0-9_]+(?:\.[a-z0-9_]+)*$/
 
 // Mientras se escribe: minúsculas, sin la @ inicial y solo con caracteres permitidos.
@@ -68,6 +70,7 @@ export async function updateProfile(uid, current, changes) {
   const batch = writeBatch(db)
   const next = { ...changes, updatedAt: serverTimestamp() }
   if (changes.handle && changes.handle !== current.handle) {
+    next.handleChangedAt = serverTimestamp()
     batch.set(doc(db, 'handles', changes.handle), { uid })
     batch.delete(doc(db, 'handles', current.handle))
   }

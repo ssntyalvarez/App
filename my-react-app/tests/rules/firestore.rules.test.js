@@ -1,7 +1,7 @@
 // Pruebas de las reglas de Firestore contra el emulador.
 // Ejecutar con: npm run test:rules
 import { readFileSync } from 'node:fs'
-import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing'
 import { deleteDoc, doc, getDoc, getDocs, collection, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore'
 
@@ -28,7 +28,7 @@ async function createProfile(db, uid, handle, extra = {}) {
 
 const review = (uid, extra = {}) => ({
   uid, gameId: '3498', gameName: 'Grand Theft Auto V', gameSlug: 'grand-theft-auto-v',
-  gameImage: 'https://media.rawg.io/media/games/a.jpg', score: 8, text: 'Muy bueno',
+  gameImage: 'https://media.rawg.io/media/games/a.jpg', score: 8, text: 'Muy bueno, lo recomiendo.', playtimeHours: 42,
   createdAt: serverTimestamp(), updatedAt: serverTimestamp(), ...extra,
 })
 
@@ -75,7 +75,7 @@ describe('perfiles y alias', () => {
     const b = writeBatch(db)
     b.set(doc(db, 'handles', 'ana_nueva'), { uid: 'ana' })
     b.delete(doc(db, 'handles', 'ana_g'))
-    b.update(doc(db, 'users', 'ana'), { handle: 'ana_nueva', updatedAt: serverTimestamp() })
+    b.update(doc(db, 'users', 'ana'), { handle: 'ana_nueva', handleChangedAt: serverTimestamp(), updatedAt: serverTimestamp() })
     await assertSucceeds(b.commit())
     // Sin liberar el alias viejo, el cambio se rechaza.
     const b2 = writeBatch(db)
@@ -119,6 +119,17 @@ describe('reseñas', () => {
     await assertFails(setDoc(ref, review('ana', { gameImage: 'https://evil.example/x.png' })))
   })
 
+  it('opinión estilo Steam: horas jugadas obligatorias y reseña de al menos 10 caracteres', async () => {
+    const ref = doc(as('ana'), 'reviews', '3498_ana')
+    const { playtimeHours, ...sinHoras } = review('ana')
+    expect(playtimeHours).toBe(42)
+    await assertFails(setDoc(ref, sinHoras))
+    await assertFails(setDoc(ref, review('ana', { playtimeHours: -1 })))
+    await assertFails(setDoc(ref, review('ana', { playtimeHours: 1.5 })))
+    await assertFails(setDoc(ref, review('ana', { text: 'corta' })))
+    await assertSucceeds(setDoc(ref, review('ana', { playtimeHours: 0 })))
+  })
+
   it('una sola reseña por usuario y juego: no se puede “recrear” encima', async () => {
     const db = as('ana')
     await setDoc(doc(db, 'reviews', '3498_ana'), review('ana'))
@@ -129,7 +140,7 @@ describe('reseñas', () => {
     await setDoc(doc(as('ana'), 'reviews', '3498_ana'), review('ana'))
     await assertFails(updateDoc(doc(as('beto'), 'reviews', '3498_ana'), { score: 1, updatedAt: serverTimestamp() }))
     await assertFails(deleteDoc(doc(as('beto'), 'reviews', '3498_ana')))
-    await assertSucceeds(updateDoc(doc(as('ana'), 'reviews', '3498_ana'), { score: 10, text: 'Editada', updatedAt: serverTimestamp() }))
+    await assertSucceeds(updateDoc(doc(as('ana'), 'reviews', '3498_ana'), { score: 10, text: 'Editada después de rejugarlo.', playtimeHours: 50, updatedAt: serverTimestamp() }))
     await assertSucceeds(deleteDoc(doc(as('ana'), 'reviews', '3498_ana')))
   })
 
@@ -164,11 +175,10 @@ describe('perfil personalizable', () => {
   })
 })
 
-describe('biblioteca personal', () => {
+describe('biblioteca personal (juegos favoritos)', () => {
   const entry = (extra = {}) => ({
     gameId: '3498', name: 'Grand Theft Auto V', slug: 'gta-v', image: 'https://media.rawg.io/media/games/a.jpg',
-    released: '2013-09-17', status: 'want', favorite: false, finishedAt: null,
-    addedAt: serverTimestamp(), updatedAt: serverTimestamp(), ...extra,
+    released: '2013-09-17', addedAt: serverTimestamp(), updatedAt: serverTimestamp(), ...extra,
   })
 
   it('es pública para lectura', async () => {
@@ -179,21 +189,36 @@ describe('biblioteca personal', () => {
   it('cada usuario solo modifica su biblioteca', async () => {
     await assertSucceeds(setDoc(doc(as('ana'), 'libraries/ana/games/3498'), entry()))
     await assertFails(setDoc(doc(as('beto'), 'libraries/ana/games/1'), entry({ gameId: '1' })))
-    await assertFails(updateDoc(doc(as('beto'), 'libraries/ana/games/3498'), { status: 'abandoned', updatedAt: serverTimestamp() }))
     await assertFails(deleteDoc(doc(as('beto'), 'libraries/ana/games/3498')))
     await assertSucceeds(deleteDoc(doc(as('ana'), 'libraries/ana/games/3498')))
   })
 
-  it('valida estado, coherencia del id y fecha de finalización', async () => {
+  it('valida el id y no admite estados ni puntuación (la nota vive en la reseña)', async () => {
     const ref = doc(as('ana'), 'libraries/ana/games/3498')
-    await assertFails(setDoc(ref, entry({ status: 'terminado' })))
     await assertFails(setDoc(ref, entry({ gameId: '1' })))
-    await assertFails(setDoc(ref, entry({ status: 'playing', finishedAt: '2024-01-01' })))
-    await assertFails(setDoc(ref, entry({ status: 'completed', finishedAt: 'ayer' })))
-    await assertSucceeds(setDoc(ref, entry({ status: 'completed', finishedAt: '2024-01-01' })))
+    await assertFails(setDoc(ref, entry({ status: 'completed' })))
+    await assertFails(setDoc(ref, entry({ score: 10 })))
+  })
+})
+
+describe('cambio de alias', () => {
+  const change = (db, uid, from, to) => {
+    const b = writeBatch(db)
+    b.set(doc(db, 'handles', to), { uid })
+    b.delete(doc(db, 'handles', from))
+    b.update(doc(db, 'users', uid), { handle: to, handleChangedAt: serverTimestamp(), updatedAt: serverTimestamp() })
+    return b.commit()
+  }
+
+  it('después de cambiarlo hay que esperar una semana para volver a cambiarlo', async () => {
+    await createProfile(as('ana'), 'ana', 'ana_g')
+    await assertSucceeds(change(as('ana'), 'ana', 'ana_g', 'ana.nueva'))
+    await assertFails(change(as('ana'), 'ana', 'ana.nueva', 'ana.otra'))
   })
 
-  it('no admite una puntuación en la biblioteca (la nota vive en la reseña)', async () => {
-    await assertFails(setDoc(doc(as('ana'), 'libraries/ana/games/3498'), entry({ score: 10 })))
+  it('no se puede adelantar ni borrar la fecha del último cambio', async () => {
+    await createProfile(as('ana'), 'ana', 'ana_g')
+    await change(as('ana'), 'ana', 'ana_g', 'ana.nueva')
+    await assertFails(updateDoc(doc(as('ana'), 'users', 'ana'), { handleChangedAt: new Date(2000, 0, 1), updatedAt: serverTimestamp() }))
   })
 })

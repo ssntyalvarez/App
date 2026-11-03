@@ -981,6 +981,71 @@ fieldset legend {
   box-shadow: none;
 }
 
+.input-suffix {
+  display: flex;
+  align-items: center;
+  max-width: 180px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+}
+
+.input-suffix:focus-within {
+  border-color: var(--lime);
+  box-shadow: 0 0 0 3px var(--lime-soft);
+}
+
+.field .input-suffix input {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.input-suffix > span {
+  padding-right: 14px;
+  color: var(--muted);
+}
+
+/* Tiempo de juego de una reseña, como en Steam. */
+.playtime {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.playtime::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  background: linear-gradient(currentColor, currentColor) 5px 2px / 1.5px 4.5px no-repeat;
+}
+
+.review-own__score .playtime {
+  margin-left: 12px;
+}
+
+.library-panel__in {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.heart {
+  width: 18px;
+  height: 18px;
+  color: var(--coral);
+}
+
+.btn .heart {
+  color: currentColor;
+}
+
 .input-reveal {
   position: relative;
 }
@@ -2918,6 +2983,134 @@ fieldset {
 }
 
 /* ---------- Editar perfil ---------- */
+
+.avatar-editable--sm .avatar-editable__btn {
+  inset: 3px;
+  font-size: 0.68rem;
+}
+
+.avatar-editable--sm .avatar-editable__btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.profile-edit__initials {
+  justify-self: start;
+  margin-top: 4px;
+  font-size: 0.8rem;
+}
+
+.favorites {
+  display: grid;
+  gap: 14px;
+}
+
+.fav-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.fav-item {
+  position: relative;
+  display: grid;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.fav-item .game-img {
+  aspect-ratio: 16 / 9;
+}
+
+.fav-item__name {
+  padding: 6px 8px 8px;
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fav-item__actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+}
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(18, 19, 20, 0.82);
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.icon-btn:hover {
+  color: var(--text);
+}
+
+.icon-btn.is-on {
+  color: var(--lime);
+}
+
+.icon-btn.is-on svg {
+  fill: currentColor;
+}
+
+.fav-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.fav-results li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.fav-results .game-img {
+  width: 72px;
+  height: 42px;
+  border-radius: 6px;
+}
+
+.fav-results li > span:not(.fav-results__done) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fav-results__done {
+  font-size: 0.8rem;
+  padding-right: 8px;
+}
+
 
 .profile-edit {
   display: grid;

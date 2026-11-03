@@ -7,10 +7,13 @@ import { FirebasePending, Spinner } from '../components/States.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
-import { rawgImage } from '../lib/format.js'
+import { formatDate } from '../lib/format.js'
+import { MAX_FEATURED } from '../lib/library.js'
+import { useLibraryActions } from '../lib/libraryActions.js'
 import { invalidateProfileData, useDebouncedValue, useDocumentTitle, useGames, useLibrary } from '../lib/hooks.js'
 import { fileToAvatar } from '../lib/image.js'
 import {
+  HANDLE_COOLDOWN_MS,
   MAX_BIO,
   MAX_HANDLE,
   firestoreMessage,
@@ -20,47 +23,61 @@ import {
   validateProfileFields,
 } from '../lib/profiles.js'
 
-function CoverOption({ item, value, onChange }) {
-  return (
-    <li>
-      <button
-        type="button"
-        className={`cover-option ${value === item.image ? 'is-selected' : ''}`}
-        aria-pressed={value === item.image}
-        onClick={() => onChange(item.image)}
-      >
-        <GameImage src={item.image} width={420} label={false} />
-        <span>{item.name}</span>
-      </button>
-    </li>
-  )
-}
-
-// Portadas posibles: imágenes de los juegos de la biblioteca o de una búsqueda en el catálogo.
-function CoverPicker({ uid, value, onChange }) {
+// Juegos favoritos: los de la biblioteca (con opción de destacar o quitar) y un buscador para sumar más.
+function FavoritesManager({ uid, featured }) {
   const library = useLibrary(uid)
+  const actions = useLibraryActions(uid)
   const [search, setSearch] = useState('')
   const debounced = useDebouncedValue(search.trim(), 450)
   const results = useGames({ search: debounced, pageSize: 8 }, { enabled: debounced.length >= 2 })
-
-  const fromLibrary = (library.data ?? []).filter((e) => e.image).map((e) => ({ key: `l-${e.gameId}`, name: e.name, image: e.image }))
-  const fromSearch = (results.data?.results ?? []).filter((g) => g.image).map((g) => ({ key: `s-${g.id}`, name: g.name, image: g.image }))
+  const entries = library.data ?? []
+  const inLibrary = new Set(entries.map((e) => e.gameId))
+  const busy = Object.values(actions).some((m) => m.isPending)
 
   return (
-    <div className="cover-picker">
-      {fromLibrary.length > 0 ? (
-        <>
-          <p className="field__hint">De tu biblioteca</p>
-          <ul className="cover-grid">
-            {fromLibrary.map((item) => <CoverOption key={item.key} item={item} value={value} onChange={onChange} />)}
-          </ul>
-        </>
+    <div className="favorites">
+      {library.isPending ? (
+        <p className="field__hint">Cargando tu biblioteca…</p>
+      ) : entries.length ? (
+        <ul className="fav-grid">
+          {entries.map((e) => {
+            const isFeatured = featured.includes(e.gameId)
+            return (
+              <li key={e.gameId} className="fav-item">
+                <GameImage src={e.image} width={420} label={false} />
+                <span className="fav-item__name">{e.name}</span>
+                <span className="fav-item__actions">
+                  <button
+                    type="button"
+                    className={`icon-btn ${isFeatured ? 'is-on' : ''}`}
+                    aria-pressed={isFeatured}
+                    disabled={busy}
+                    onClick={() => actions.feature.mutate({ gameId: e.gameId, value: !isFeatured })}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9z" />
+                    </svg>
+                    <span className="sr-only">Destacar {e.name} en el perfil</span>
+                  </button>
+                  <button type="button" className="icon-btn" disabled={busy} onClick={() => actions.remove.mutate({ gameId: e.gameId })}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M6 6l12 12M18 6 6 18" />
+                    </svg>
+                    <span className="sr-only">Quitar {e.name} de la biblioteca</span>
+                  </button>
+                </span>
+              </li>
+            )
+          })}
+        </ul>
       ) : (
-        <p className="field__hint">Cuando agregues juegos a tu biblioteca, sus imágenes aparecerán acá.</p>
+        <p className="field__hint">Todavía no agregaste juegos. Buscalos acá abajo o desde su ficha.</p>
       )}
+      <p className="field__hint">La estrella destaca hasta {MAX_FEATURED} juegos al principio de tu perfil.</p>
+
       <div className="field">
-        <label htmlFor="cover-search">Buscar otra imagen en el catálogo</label>
-        <input id="cover-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nombre de un juego" maxLength={80} />
+        <label htmlFor="fav-search">Agregar un juego</label>
+        <input id="fav-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscá por nombre" maxLength={80} autoComplete="off" />
       </div>
       {results.isFetching && <p className="field__hint">Buscando…</p>}
       {results.isError && (
@@ -68,15 +85,22 @@ function CoverPicker({ uid, value, onChange }) {
           {results.error?.code === 'missing_key' ? 'El catálogo está pendiente de conexión.' : 'No se pudo buscar en el catálogo.'}
         </p>
       )}
-      {fromSearch.length > 0 && (
-        <ul className="cover-grid">
-          {fromSearch.map((item) => <CoverOption key={item.key} item={item} value={value} onChange={onChange} />)}
+      {results.data?.results.length > 0 && (
+        <ul className="fav-results">
+          {results.data.results.map((g) => (
+            <li key={g.id}>
+              <GameImage src={g.image} width={420} label={false} />
+              <span>{g.name}</span>
+              {inLibrary.has(String(g.id)) ? (
+                <span className="muted fav-results__done">En tu biblioteca</span>
+              ) : (
+                <button type="button" className="btn btn--ghost btn--sm" disabled={busy} onClick={() => actions.add.mutate({ game: g })}>
+                  Agregar
+                </button>
+              )}
+            </li>
+          ))}
         </ul>
-      )}
-      {value && (
-        <button type="button" className="btn btn--ghost btn--sm" onClick={() => onChange('')}>
-          Usar la portada predeterminada
-        </button>
       )}
     </div>
   )
@@ -92,11 +116,11 @@ function EditForm({ user, profile }) {
     handle: profile.handle,
     bio: profile.bio ?? '',
     avatar: profile.avatar ?? '',
-    coverUrl: profile.coverUrl ?? '',
   })
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
   const [processing, setProcessing] = useState(false)
+  const [now] = useState(() => Date.now())
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
 
   const onAvatar = async (e) => {
@@ -132,7 +156,6 @@ function EditForm({ user, profile }) {
         handle: form.handle,
         bio: form.bio.trim(),
         avatar: form.avatar,
-        coverUrl: form.coverUrl,
       })
       invalidateProfileData(queryClient)
       notify('Perfil actualizado.')
@@ -144,20 +167,40 @@ function EditForm({ user, profile }) {
   }
 
   const preview = { ...profile, ...form }
-  const cover = rawgImage(form.coverUrl, 1280)
+  // Después de cambiar el alias hay que esperar una semana para volver a cambiarlo.
+  const lastChange = profile.handleChangedAt?.toMillis?.()
+  const nextChange = lastChange ? lastChange + HANDLE_COOLDOWN_MS : 0
+  const handleLocked = nextChange > now
 
   return (
     <form className="profile-edit" onSubmit={onSubmit} noValidate>
       <div className="profile-edit__preview" aria-label="Vista previa">
-        <div className={`profile-edit__cover ${cover ? '' : 'is-default'}`} style={cover ? { backgroundImage: `url("${cover}")` } : undefined} />
+        <div className="profile-edit__cover is-default" />
         <div className="profile-edit__id">
-          <Avatar profile={preview} size={84} />
+          {/* La foto se cambia pasando el mouse (o con el teclado) sobre el avatar. */}
+          <div className={`avatar-editable avatar-editable--sm ${processing ? 'is-busy' : ''}`}>
+            <Avatar profile={preview} size={84} />
+            <button type="button" className="avatar-editable__btn" onClick={() => fileRef.current?.click()} disabled={processing || busy}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                <circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+              </svg>
+              <span>{processing ? 'Procesando…' : 'Cambiar foto'}</span>
+            </button>
+            <input ref={fileRef} id="pe-avatar" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" tabIndex={-1} onChange={onAvatar} aria-label="Elegir foto de perfil" />
+          </div>
           <div>
             <strong>{form.displayName || 'Tu nombre'}</strong>
             <span className="muted">@{form.handle || 'alias'}</span>
+            {form.avatar && (
+              <button type="button" className="link-btn profile-edit__initials" onClick={() => set('avatar', '')} disabled={busy}>
+                Usar iniciales
+              </button>
+            )}
           </div>
         </div>
         {form.bio && <p className="profile-edit__bio">{form.bio}</p>}
+        {errors.avatar && <p className="form-error profile-edit__bio" role="alert">{errors.avatar}</p>}
       </div>
 
       <section className="panel form">
@@ -172,9 +215,13 @@ function EditForm({ user, profile }) {
             <label htmlFor="pe-handle">Alias</label>
             <div className="input-prefix">
               <span aria-hidden="true">@</span>
-              <input id="pe-handle" value={form.handle} maxLength={MAX_HANDLE} autoCapitalize="none" spellCheck={false} onChange={(e) => set('handle', normalizeHandle(e.target.value))} aria-invalid={errors.handle ? 'true' : undefined} />
+              <input id="pe-handle" value={form.handle} maxLength={MAX_HANDLE} autoCapitalize="none" spellCheck={false} disabled={handleLocked} onChange={(e) => set('handle', normalizeHandle(e.target.value))} aria-invalid={errors.handle ? 'true' : undefined} aria-describedby="pe-handle-hint" />
             </div>
-            <p className="field__hint">Tu perfil: /u/{form.handle || '…'}</p>
+            <p id="pe-handle-hint" className="field__hint">
+              {handleLocked
+                ? `Cambiaste tu alias hace poco. Vas a poder cambiarlo de nuevo el ${formatDate(new Date(nextChange))}.`
+                : `Tu perfil: /u/${form.handle || '…'} · después de cambiarlo, tenés que esperar una semana para volver a hacerlo.`}
+            </p>
             {errors.handle && <p className="form-error">{errors.handle}</p>}
           </div>
         </div>
@@ -186,29 +233,9 @@ function EditForm({ user, profile }) {
         </div>
       </section>
 
-      <section className="panel form">
-        <h2 className="panel__title">Avatar</h2>
-        <div className="avatar-edit">
-          <Avatar profile={preview} size={96} />
-          <div className="avatar-edit__actions">
-            <input ref={fileRef} id="pe-avatar" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={onAvatar} />
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => fileRef.current?.click()} disabled={processing || busy}>
-              {processing ? 'Procesando…' : 'Subir imagen'}
-            </button>
-            {form.avatar && (
-              <button type="button" className="btn btn--ghost btn--sm" onClick={() => set('avatar', '')} disabled={busy}>
-                Usar iniciales
-              </button>
-            )}
-            <p className="field__hint">Se recorta en cuadrado y se comprime a 192 px en tu navegador.</p>
-            {errors.avatar && <p className="form-error" role="alert">{errors.avatar}</p>}
-          </div>
-        </div>
-      </section>
-
-      <section className="panel form">
-        <h2 className="panel__title">Imagen de portada</h2>
-        <CoverPicker uid={user.uid} value={form.coverUrl} onChange={(v) => set('coverUrl', v)} />
+      <section className="panel form" id="favoritos">
+        <h2 className="panel__title">Tus juegos favoritos</h2>
+        <FavoritesManager uid={user.uid} featured={profile.featured ?? []} />
       </section>
 
       <div className="row profile-edit__submit">

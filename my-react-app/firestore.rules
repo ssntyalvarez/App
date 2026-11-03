@@ -28,7 +28,7 @@ service cloud.firestore {
     }
 
     function validProfile(d) {
-      return d.keys().hasOnly(['displayName', 'handle', 'bio', 'avatar', 'coverUrl', 'featured', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['displayName', 'handle', 'bio', 'avatar', 'coverUrl', 'featured', 'handleChangedAt', 'createdAt', 'updatedAt'])
         && d.displayName is string && d.displayName.size() >= 1 && d.displayName.size() <= 40
         && validHandle(d.handle)
         && (!('bio' in d) || (d.bio is string && d.bio.size() <= 160))
@@ -49,6 +49,7 @@ service cloud.firestore {
       allow create: if isOwner(uid)
         && validProfile(request.resource.data)
         && request.resource.data.createdAt == request.time
+        && !('handleChangedAt' in request.resource.data)
         // El alias debe reservarse en la misma operación.
         && getAfter(/databases/$(database)/documents/handles/$(request.resource.data.handle)).data.uid == uid;
 
@@ -56,10 +57,17 @@ service cloud.firestore {
         && validProfile(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt
         && (
-          request.resource.data.handle == resource.data.handle
+          (
+            request.resource.data.handle == resource.data.handle
+            && request.resource.data.get('handleChangedAt', null) == resource.data.get('handleChangedAt', null)
+          )
           || (
             getAfter(/databases/$(database)/documents/handles/$(request.resource.data.handle)).data.uid == uid
             && !existsAfter(/databases/$(database)/documents/handles/$(resource.data.handle))
+            // Después de cambiar el alias hay que esperar una semana para volver a cambiarlo.
+            && request.resource.data.handleChangedAt == request.time
+            && (!('handleChangedAt' in resource.data)
+                || request.time > resource.data.handleChangedAt + duration.value(7, 'd'))
           )
         );
 
@@ -87,15 +95,17 @@ service cloud.firestore {
     // ---------- Reseñas ----------
     // reviews/{gameId}_{uid}: el id determinista garantiza una reseña por usuario y juego.
     function validReview(d) {
-      return d.keys().hasOnly(['uid', 'gameId', 'gameName', 'gameSlug', 'gameImage', 'score', 'text', 'createdAt', 'updatedAt'])
-        && d.keys().hasAll(['uid', 'gameId', 'gameName', 'score', 'text', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['uid', 'gameId', 'gameName', 'gameSlug', 'gameImage', 'score', 'text', 'playtimeHours', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['uid', 'gameId', 'gameName', 'score', 'text', 'playtimeHours', 'createdAt', 'updatedAt'])
         && d.gameId is string && d.gameId.matches('^[0-9]{1,9}$')
         && d.gameName is string && d.gameName.size() >= 1 && d.gameName.size() <= 200
         && (!('gameSlug' in d) || (d.gameSlug is string && d.gameSlug.size() <= 120))
         && (!('gameImage' in d) || d.gameImage == null || isRawgImage(d.gameImage))
         // 0 es una puntuación válida.
         && d.score is int && d.score >= 0 && d.score <= 10
-        && d.text is string && d.text.size() <= 2000
+        // Como en Steam: reseña escrita y horas jugadas.
+        && d.text is string && d.text.size() >= 10 && d.text.size() <= 2000
+        && d.playtimeHours is int && d.playtimeHours >= 0 && d.playtimeHours <= 20000
         && d.updatedAt == request.time;
     }
 
@@ -119,21 +129,16 @@ service cloud.firestore {
     }
 
     // ---------- Biblioteca personal ----------
-    // libraries/{uid}/games/{gameId}: estado de cada juego en la biblioteca.
-    // No guarda puntuación: la nota personal sale siempre de reviews (una sola fuente).
+    // libraries/{uid}/games/{gameId}: los juegos favoritos de cada persona.
+    // No guarda estados ni puntuación: la nota y las horas salen de reviews (una sola fuente).
     function validLibraryEntry(d, gameId) {
-      return d.keys().hasOnly(['gameId', 'name', 'slug', 'image', 'released', 'status', 'favorite', 'finishedAt', 'addedAt', 'updatedAt'])
-        && d.keys().hasAll(['gameId', 'name', 'status', 'favorite', 'addedAt', 'updatedAt'])
+      return d.keys().hasOnly(['gameId', 'name', 'slug', 'image', 'released', 'addedAt', 'updatedAt'])
+        && d.keys().hasAll(['gameId', 'name', 'addedAt', 'updatedAt'])
         && d.gameId == gameId && gameId.matches('^[0-9]{1,9}$')
         && d.name is string && d.name.size() >= 1 && d.name.size() <= 200
         && (!('slug' in d) || (d.slug is string && d.slug.size() <= 120))
         && (!('image' in d) || d.image == null || isRawgImage(d.image))
         && (!('released' in d) || d.released == null || (d.released is string && d.released.size() <= 10))
-        && d.status in ['want', 'playing', 'completed', 'abandoned']
-        && d.favorite is bool
-        // La fecha de finalización es opcional y solo tiene sentido si está completado.
-        && (!('finishedAt' in d) || d.finishedAt == null
-            || (d.status == 'completed' && d.finishedAt is string && d.finishedAt.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
         && d.updatedAt == request.time;
     }
 

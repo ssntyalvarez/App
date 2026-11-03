@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { formatDate } from '../lib/format.js'
 import { useProfile } from '../lib/hooks.js'
+import { formatHours } from '../lib/reviews.js'
 import Avatar from './Avatar.jsx'
 
 function wasEdited(review) {
@@ -36,7 +37,8 @@ export default function ReviewList({ reviews, currentUid }) {
               <small>/10</small>
             </div>
           </div>
-          {r.text ? <p className="review__text">{r.text}</p> : <p className="review__text muted">Solo puntuación.</p>}
+          {r.playtimeHours != null && <p className="playtime">{formatHours(r.playtimeHours)}</p>}
+          {r.text ? <p className="review__text">{r.text}</p> : <p className="review__text muted">Sin reseña escrita.</p>}
           <p className="review__date muted">
             {formatDate(r.updatedAt)}
             {wasEdited(r) && ' · editada'}
