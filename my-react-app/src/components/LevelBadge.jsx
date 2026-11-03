@@ -3,7 +3,7 @@ import { DETAILED_LENGTH, XP_DETAILED_BONUS, XP_PER_REVIEW, levelFromReviews } f
 
 export default function LevelBadge({ level, isOwner }) {
   return (
-    <div className={`level level--${level.tier}`} title={`${level.xp.toLocaleString('es-AR')} XP`}>
+    <div className={`level band--${level.band}`} title={`${level.xp.toLocaleString('es-AR')} XP`}>
       <span className="level__num" aria-hidden="true">{level.level}</span>
       <div className="level__body">
         <p className="level__title">
@@ -38,7 +38,7 @@ export function LevelChip({ uid }) {
   if (!reviews.data) return null
   const level = levelFromReviews(reviews.data)
   return (
-    <span className={`level-chip level--${level.tier}`} title={`Nivel ${level.level} · ${level.title}`}>
+    <span className={`level-chip band--${level.band}`} title={`Nivel ${level.level} · ${level.title}`}>
       <span aria-hidden="true">{level.level}</span>
       <span className="sr-only">Nivel {level.level}, {level.title}</span>
     </span>

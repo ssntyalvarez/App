@@ -202,6 +202,7 @@ export default function Profile() {
   const [params, setParams] = useSearchParams()
   const TABS = ['biblioteca', 'resenas', 'amigos']
   const tab = TABS.includes(params.get('tab')) ? params.get('tab') : 'biblioteca'
+  const list = ['seguidores', 'seguidos'].includes(params.get('lista')) ? params.get('lista') : 'amigos'
 
   const profileQ = useProfileByHandle(handle)
   useDocumentTitle(profileQ.data ? `${profileQ.data.displayName} (@${profileQ.data.handle})` : 'Perfil')
@@ -263,6 +264,31 @@ export default function Profile() {
               @{profile.handle}
               {profile.createdAt && <span className="muted"> · En Checkpoint desde {formatMonth(profile.createdAt)}</span>}
             </p>
+            {showFollows && (
+              <p className="follow-counts">
+                {[
+                  ['seguidores', connections.data?.followers.length, 'seguidores', 'seguidor'],
+                  ['seguidos', connections.data?.following.length, 'seguidos', 'seguido'],
+                  ['amigos', connections.data?.friends.length, 'amigos', 'amigo'],
+                ].map(([value, n, many, one]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className="link-plain follow-counts__item"
+                    onClick={() => {
+                      const next = new URLSearchParams(window.location.search)
+                      next.set('tab', 'amigos')
+                      if (value === 'amigos') next.delete('lista')
+                      else next.set('lista', value)
+                      setParams(next, { replace: true, preventScrollReset: true })
+                      document.getElementById('tab-amigos')?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                    }}
+                  >
+                    <strong>{n ?? '…'}</strong> {n === 1 ? one : many}
+                  </button>
+                ))}
+              </p>
+            )}
             {profile.bio ? <p className="profile-hero__bio">{profile.bio}</p> : isOwner && <p className="muted">Todavía no escribiste una biografía.</p>}
           </div>
           <div className="profile-hero__actions">
@@ -416,7 +442,13 @@ export default function Profile() {
           </section>
         ) : tab === 'amigos' ? (
           <section id="panel-amigos" role="tabpanel" aria-labelledby="tab-amigos" className="tab-panel">
-            <SocialTab profile={profile} isOwner={isOwner} connections={connections} />
+            <SocialTab
+              profile={profile}
+              isOwner={isOwner}
+              connections={connections}
+              list={list}
+              onListChange={(v) => setParam('lista', v === 'amigos' ? '' : v)}
+            />
           </section>
         ) : (
           <section id="panel-resenas" role="tabpanel" aria-labelledby="tab-resenas" className="tab-panel">

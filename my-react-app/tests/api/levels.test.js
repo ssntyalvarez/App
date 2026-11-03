@@ -12,6 +12,12 @@ describe('niveles y XP', () => {
     expect(levelFromReviews([short, long]).xp).toBe(250)
     expect(levelFromReviews([short]).level).toBe(2)
   })
+  it('color de anillo como Steam, cada dos niveles', () => {
+    expect([1, 2, 3, 5, 7, 9, 11, 13, 15, 17, 19, 40].map((l) => levelFromXp(xpForLevel(l)).band)).toEqual([
+      'gris', 'gris', 'rojo', 'naranja', 'amarillo', 'verde', 'azul', 'violeta', 'rosa', 'marron', 'dorado', 'dorado',
+    ])
+  })
+
   it('curva de niveles', () => {
     expect([1, 2, 3, 4, 5].map(xpForLevel)).toEqual([0, 100, 300, 600, 1000])
     expect(levelFromXp(299).level).toBe(2)

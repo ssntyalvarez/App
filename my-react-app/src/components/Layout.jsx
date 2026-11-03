@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import Avatar from './Avatar.jsx'
 import Logo from './Logo.jsx'
+import SocialDrawer from './SocialDrawer.jsx'
 import { OnboardingProvider } from './Onboarding.jsx'
 
 function HeaderSearch({ onDone }) {
@@ -59,7 +60,6 @@ function accountLinks(profile) {
   if (!profile) return [{ to: '/configuracion', label: 'Configuración' }]
   return [
     { to: `/u/${profile.handle}`, label: 'Mi perfil' },
-    { to: '/mensajes', label: 'Mensajes' },
     { to: '/configuracion', label: 'Configuración' },
   ]
 }
@@ -206,6 +206,7 @@ export default function Layout() {
             <HeaderSearch onDone={() => setMenuOpen(false)} />
           </div>
           <div className="header-account">
+            <SocialDrawer />
             <AccountMenu />
           </div>
           <button

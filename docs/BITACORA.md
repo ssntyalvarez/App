@@ -231,6 +231,14 @@ A pedido del autor se simplificó el modelo:
 - **Niveles y XP:** se calculan a partir de las reseñas reales (100 XP por reseña, +50 si tiene 200 caracteres o más). Seis rangos con color propio, de gris (Novato) a dorado con brillo (Leyenda). Se ven en el perfil y junto al nombre en reseñas y listas.
 - Pruebas: 32 de reglas (7 sociales nuevas, incluida “amigos de amigos”), 33 unitarias (niveles) y 25 de punta a punta (seguir, chat entre dos navegadores, solo amigos, niveles).
 
+### Panel Social, buscador de personas y niveles estilo Steam
+- **Panel Social** (botón en el encabezado, se abre desde la derecha): tus amigos con acceso al chat y al perfil, y un buscador que filtra amigos mientras escribís. “Buscar” lleva a **/personas**, que busca en toda la comunidad por comienzo del alias o del nombre (sin texto, muestra las cuentas más nuevas). “Mensajes” salió del menú de la cuenta.
+- **Contadores en el perfil:** seguidores, seguidos y amigos debajo del nombre; cada uno abre su lista.
+- **Niveles estilo Steam:** número dentro de un círculo cuyo anillo cambia de color cada dos niveles (gris, rojo, naranja, amarillo, verde, azul, violeta, rosa, marrón y dorado con brillo).
+- **Inicio:** con sesión iniciada ya no ofrece “Crear cuenta”, sino “Ir a mi perfil”.
+- Dificultades: (1) el panel medía 68 px de alto porque el encabezado usa `backdrop-filter`, que convierte al encabezado en el contenedor de los elementos fijos; se resolvió montando el panel en `<body>` con un portal. (2) En celular, el panel cerrado (desplazado fuera de la pantalla) ensanchaba la página y el navegador la achicaba; ahora el panel solo existe mientras está abierto. (3) Una prueba buscaba el botón “Amigos” y Playwright aceptaba también “0 amigos” al comparar parte del texto; se usó coincidencia exacta.
+- Pruebas: 34 unitarias, 32 de reglas y 25 de punta a punta.
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)

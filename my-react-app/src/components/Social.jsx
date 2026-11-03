@@ -74,7 +74,7 @@ export function MessageButton({ profile }) {
   )
 }
 
-function PersonRow({ uid, note }) {
+export function PersonRow({ uid, note }) {
   const { user } = useAuth()
   const { data: profile, isPending } = useProfile(uid)
   if (isPending) return <li className="person is-loading"><span className="muted">Cargando…</span></li>
@@ -100,8 +100,8 @@ const LISTS = [
 ]
 
 // Pestaña “Amigos” del perfil: amigos, seguidores, seguidos y (en el propio) amigos de amigos.
-export function SocialTab({ profile, isOwner, connections }) {
-  const [list, setList] = useState('amigos')
+export function SocialTab({ profile, isOwner, connections, list = 'amigos', onListChange }) {
+  const setList = onListChange
   const suggestions = useSuggestions(isOwner ? profile.uid : null, connections.data)
   const hidden = !isOwner && !settingsOf(profile).showFollows
   const active = LISTS.find((l) => l.value === list)
