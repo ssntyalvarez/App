@@ -4,7 +4,7 @@ import Logo from './Logo.jsx'
 // Personajes de las pantallas de acceso (recortes en public/personajes/).
 const LEGENDS = {
   snake: { character: 'Naked Snake', game: 'Metal Gear Solid 3: Snake Eater' },
-  leon: { character: 'Leon S. Kennedy', game: 'Resident Evil' },
+  leon: { character: 'Leon S. Kennedy', game: 'Resident Evil 4' },
   kratos: { character: 'Kratos', game: 'God of War' },
   link: { character: 'Link', game: 'The Legend of Zelda: Breath of the Wild' },
   batman: { character: 'Batman', game: 'Batman: Arkham City' },
@@ -12,10 +12,10 @@ const LEGENDS = {
 }
 
 // En Ingresar aparece uno distinto en cada visita.
-const LOGIN_CAST = ['snake', 'leon', 'kratos', 'link']
-// En Crear cuenta aparecen todos juntos, como un póster de reparto.
+const LOGIN_CAST = ['snake', 'leon', 'kratos', 'link', 'batman']
+// En Crear cuenta aparecen juntos, como un póster de reparto, todos cortados por el borde inferior.
 // Si falta el archivo de algún personaje (p. ej. fisher.webp), simplemente no se muestra.
-const REGISTER_CAST = ['leon', 'snake', 'kratos', 'link', 'batman', 'fisher']
+const REGISTER_CAST = ['leon', 'kratos', 'snake', 'link', 'fisher']
 
 function Character({ id, className = '', eager = false }) {
   const [failed, setFailed] = useState(false)
@@ -61,7 +61,6 @@ export function RegisterArt() {
   return (
     <div className="auth__art auth__art--register">
       <div className="auth__art-inner">
-        <p className="eyebrow">Nuevo en Checkpoint</p>
         <p className="auth__quote">
           Sumate a las <span className="accent">leyendas.</span>
         </p>

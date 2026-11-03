@@ -12,6 +12,7 @@ import { invalidateProfileData, useDebouncedValue, useDocumentTitle, useGames, u
 import { fileToAvatar } from '../lib/image.js'
 import {
   MAX_BIO,
+  MAX_HANDLE,
   firestoreMessage,
   getUidByHandle,
   normalizeHandle,
@@ -169,7 +170,10 @@ function EditForm({ user, profile }) {
           </div>
           <div className="field">
             <label htmlFor="pe-handle">Alias</label>
-            <input id="pe-handle" value={form.handle} maxLength={20} onChange={(e) => set('handle', normalizeHandle(e.target.value))} aria-invalid={errors.handle ? 'true' : undefined} />
+            <div className="input-prefix">
+              <span aria-hidden="true">@</span>
+              <input id="pe-handle" value={form.handle} maxLength={MAX_HANDLE} autoCapitalize="none" spellCheck={false} onChange={(e) => set('handle', normalizeHandle(e.target.value))} aria-invalid={errors.handle ? 'true' : undefined} />
+            </div>
             <p className="field__hint">Tu perfil: /u/{form.handle || '…'}</p>
             {errors.handle && <p className="form-error">{errors.handle}</p>}
           </div>

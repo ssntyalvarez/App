@@ -50,6 +50,13 @@ describe('perfiles y alias', () => {
     await assertFails(createProfile(as('ana'), 'ana', 'ana_g', { email: 'ana@example.com' }))
   })
 
+  it('alias con puntos como Instagram, sin punto al inicio, al final ni dobles', async () => {
+    await assertSucceeds(createProfile(as('ana'), 'ana', 'ana.garcia_99'))
+    for (const [uid, h] of [['b', '.ana'], ['c', 'ana.'], ['d', 'ana..g'], ['e', 'a'.repeat(31)]]) {
+      await assertFails(createProfile(as(uid), uid, h))
+    }
+  })
+
   it('valida formato de alias y nombre', async () => {
     await assertFails(createProfile(as('ana'), 'ana', 'Ana G'))
     await assertFails(createProfile(as('ana'), 'ana', 'ana', { displayName: '' }))

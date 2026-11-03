@@ -2,10 +2,18 @@
 import { doc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { db } from './firebase.js'
 
-export const HANDLE_PATTERN = /^[a-z0-9_]{3,20}$/
+// Alias al estilo de Instagram: letras, números, guion bajo y puntos; de 3 a 30 caracteres;
+// sin punto al principio, al final ni dos seguidos.
+export const MAX_HANDLE = 30
+export const HANDLE_PATTERN = /^(?=.{3,30}$)[a-z0-9_]+(?:\.[a-z0-9_]+)*$/
 
+// Mientras se escribe: minúsculas, sin la @ inicial y solo con caracteres permitidos.
 export function normalizeHandle(value) {
-  return value.trim().toLowerCase().replace(/^@/, '')
+  return value
+    .toLowerCase()
+    .replace(/^@+/, '')
+    .replace(/[^a-z0-9._]/g, '')
+    .slice(0, MAX_HANDLE)
 }
 
 export const MAX_BIO = 160
@@ -16,7 +24,7 @@ export function validateProfileFields({ displayName, handle, bio = '' }) {
   if (!name) errors.displayName = 'Ingresá un nombre visible.'
   else if (name.length > 40) errors.displayName = 'Máximo 40 caracteres.'
   if (!HANDLE_PATTERN.test(handle)) {
-    errors.handle = 'Entre 3 y 20 caracteres: minúsculas, números o guion bajo.'
+    errors.handle = 'Entre 3 y 30 caracteres: letras, números, guion bajo o punto (sin punto al principio, al final ni dos seguidos).'
   }
   if (bio.length > MAX_BIO) errors.bio = `Máximo ${MAX_BIO} caracteres.`
   return errors

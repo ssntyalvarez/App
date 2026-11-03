@@ -120,6 +120,11 @@ test('ingresar y crear cuenta se diferencian y cargan sus personajes', async ({ 
   await page.goto('/registro')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Creá tu cuenta')
   await expect(page.locator('.auth--register')).toBeVisible()
-  // Cinco personajes con archivo; Sam Fisher se omite mientras no exista su imagen.
-  await expect.poll(() => loaded(page.locator('.cast img'))).toBe(5)
+  // Cuatro personajes con archivo; Sam Fisher se omite mientras no exista su imagen.
+  await expect.poll(() => loaded(page.locator('.cast img'))).toBe(4)
+  // Alias con @ fija y solo los caracteres permitidos (como Instagram).
+  const alias = page.getByLabel('Alias')
+  await alias.fill('@Juan Pérez.99!')
+  await expect(alias).toHaveValue('juanprez.99')
+  await expect(page.locator('.input-prefix')).toContainText('@')
 })
