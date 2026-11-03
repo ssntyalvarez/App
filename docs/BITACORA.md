@@ -187,6 +187,13 @@ Dificultades:
 - **Footer:** columnas “Explorar” (Inicio, Catálogo, Mejor puntuados, Lanzamientos recientes) y “Mi cuenta” con las mismas opciones del encabezado según haya sesión o no.
 - Pruebas: 3 nuevas de punta a punta (sin sesión, con sesión y en celular sin desborde horizontal); total 19/19.
 
+### Pantallas de acceso con personajes
+- **Ingresar** (“¡Hola de nuevo!”): escenario oscuro y frío con un protagonista que cambia en cada visita (Snake, Leon, Kratos o Link) y su nombre y juego al pie.
+- **Crear cuenta** (“Creá tu cuenta”): lados invertidos, tarjeta destacada con borde lima y un “reparto” con Leon, Snake, Kratos, Link y Batman. Queda preparado el lugar para Sam Fisher (`public/personajes/fisher.webp`).
+- Imágenes elegidas por el autor del proyecto; se les quitó el fondo (Snake y Link tenían fondo claro) y se convirtieron a WebP (≈280 KB en total).
+- Dificultad: en celular el reparto no se veía porque el contenedor flexible tenía altura cero (los personajes están posicionados de forma absoluta); se resolvió con `flex: none` y altura fija.
+- Prueba nueva: títulos distintos y carga real de las imágenes; total 20/20, incluida la auditoría de accesibilidad.
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)

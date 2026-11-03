@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
-import Logo from '../components/Logo.jsx'
+import { LoginArt, RegisterArt } from '../components/AuthArt.jsx'
 import { FirebasePending, Spinner } from '../components/States.jsx'
 import { authMessage, useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
@@ -16,23 +16,14 @@ import {
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function AuthShell({ title, lead, children, footer }) {
-  useDocumentTitle(title)
+function AuthShell({ variant = 'login', docTitle, kicker, title, lead, children, footer }) {
+  useDocumentTitle(docTitle ?? title)
   return (
-    <div className="auth">
-      <div className="auth__art" aria-hidden="true">
-        <div className="auth__art-inner">
-          <Logo />
-          <p className="auth__quote">Tu próxima partida empieza con una buena recomendación.</p>
-          <ul className="auth__points">
-            <li><span>01</span> Puntuá de 0 a 10</li>
-            <li><span>02</span> Armá tu biblioteca</li>
-            <li><span>03</span> Compartí tu perfil</li>
-          </ul>
-        </div>
-      </div>
+    <div className={`auth auth--${variant}`}>
+      {variant === 'login' ? <LoginArt /> : <RegisterArt />}
       <div className="auth__panel">
         <div className="auth__card">
+          {kicker && <p className="auth__kicker">{kicker}</p>}
           <h1>{title}</h1>
           {lead && <p className="muted">{lead}</p>}
           {firebaseReady ? children : <FirebasePending />}
@@ -88,8 +79,11 @@ export function Login() {
 
   return (
     <AuthShell
-      title="Ingresar"
-      lead="Accedé para puntuar juegos, escribir opiniones y gestionar tu biblioteca."
+      variant="login"
+      docTitle="Ingresar"
+      kicker="Ingresar"
+      title="¡Hola de nuevo!"
+      lead="Ingresá para seguir con tu biblioteca, tus notas y tus opiniones."
       footer={
         <>
           ¿No tenés cuenta? <Link to="/registro" state={location.state}>Creá una</Link>
@@ -155,8 +149,11 @@ export function Register() {
 
   return (
     <AuthShell
-      title="Crear cuenta"
-      lead="Tu correo se usa solo para iniciar sesión y no se muestra en tu perfil."
+      variant="register"
+      docTitle="Crear cuenta"
+      kicker="Es gratis · menos de un minuto"
+      title="Creá tu cuenta"
+      lead="Elegí tu nombre y tu alias. Tu correo se usa solo para iniciar sesión y no se muestra en tu perfil."
       footer={
         <>
           ¿Ya tenés cuenta? <Link to="/ingresar" state={location.state}>Ingresá</Link>
@@ -219,7 +216,7 @@ export function Welcome() {
   }
 
   return (
-    <AuthShell title="Completá tu perfil" lead="Elegí cómo te van a ver los demás en Checkpoint.">
+    <AuthShell variant="register" kicker="Último paso" title="Completá tu perfil" lead="Elegí cómo te van a ver los demás en Checkpoint.">
       <form className="form" onSubmit={onSubmit} noValidate>
         <Field id="wel-name" label="Nombre visible" value={form.displayName} onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))} maxLength={40} error={errors.displayName} />
         <Field id="wel-handle" label="Alias" value={form.handle} onChange={(e) => setForm((f) => ({ ...f, handle: normalizeHandle(e.target.value) }))} maxLength={20} error={errors.handle} hint="Minúsculas, números o guion bajo." />

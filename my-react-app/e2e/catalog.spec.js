@@ -110,3 +110,16 @@ test.describe('encabezado y footer', () => {
     expect(overflow).toBeLessThanOrEqual(0)
   })
 })
+
+test('ingresar y crear cuenta se diferencian y cargan sus personajes', async ({ page }) => {
+  const loaded = (loc) => loc.evaluateAll((imgs) => imgs.filter((i) => i.complete && i.naturalWidth > 0).length)
+  await page.goto('/ingresar')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('¡Hola de nuevo!')
+  await expect(page).toHaveTitle(/^Ingresar · Checkpoint/)
+  await expect.poll(() => loaded(page.locator('.login-stage img'))).toBe(1)
+  await page.goto('/registro')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Creá tu cuenta')
+  await expect(page.locator('.auth--register')).toBeVisible()
+  // Cinco personajes con archivo; Sam Fisher se omite mientras no exista su imagen.
+  await expect.poll(() => loaded(page.locator('.cast img'))).toBe(5)
+})
