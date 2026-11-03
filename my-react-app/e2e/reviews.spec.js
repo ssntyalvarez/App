@@ -88,6 +88,12 @@ test.describe('opiniones con Firebase (emuladores)', () => {
     await page.goto('/ingresar')
     await page.getByLabel('Correo electrónico').fill('nadie@example.com')
     await page.getByLabel('Contraseña').fill('incorrecta')
+    // El “ojito” muestra y vuelve a ocultar la contraseña.
+    await expect(page.getByLabel('Contraseña')).toHaveAttribute('type', 'password')
+    await page.getByRole('button', { name: 'Mostrar contraseña' }).click()
+    await expect(page.getByLabel('Contraseña')).toHaveAttribute('type', 'text')
+    await page.getByRole('button', { name: 'Ocultar contraseña' }).click()
+    await expect(page.getByLabel('Contraseña')).toHaveAttribute('type', 'password')
     await page.getByRole('button', { name: 'Ingresar' }).click()
     await expect(page.getByText('Correo o contraseña incorrectos.')).toBeVisible()
   })

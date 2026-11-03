@@ -3,9 +3,9 @@ import Logo from './Logo.jsx'
 
 // Personajes de las pantallas de acceso (recortes en public/personajes/).
 const LEGENDS = {
-  snake: { character: 'Naked Snake', game: 'Metal Gear Solid 3: Snake Eater' },
-  leon: { character: 'Leon S. Kennedy', game: 'Resident Evil 4' },
-  kratos: { character: 'Kratos', game: 'God of War' },
+  snake: { character: 'Big Boss', game: 'Metal Gear Solid: Peace Walker' },
+  leon: { character: 'Leon S. Kennedy', game: 'Resident Evil 4 (2023)' },
+  kratos: { character: 'Kratos', game: 'God of War (2018)' },
   link: { character: 'Link', game: 'The Legend of Zelda: Breath of the Wild' },
   batman: { character: 'Batman', game: 'Batman: Arkham City' },
   fisher: { character: 'Sam Fisher', game: 'Splinter Cell' },

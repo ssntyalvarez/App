@@ -34,7 +34,9 @@ function AuthShell({ variant = 'login', docTitle, title, lead, children, footer 
   )
 }
 
-function Field({ id, label, error, hint, prefix, ...props }) {
+function Field({ id, label, error, hint, prefix, reveal, ...props }) {
+  const [visible, setVisible] = useState(false)
+  if (reveal) props.type = visible ? 'text' : 'password'
   const input = (
     <input id={id} aria-invalid={error ? 'true' : undefined} aria-describedby={error ? `${id}-err` : hint ? `${id}-hint` : undefined} {...props} />
   )
@@ -45,6 +47,18 @@ function Field({ id, label, error, hint, prefix, ...props }) {
         <div className="input-prefix">
           <span aria-hidden="true">{prefix}</span>
           {input}
+        </div>
+      ) : reveal ? (
+        <div className="input-reveal">
+          {input}
+          <button type="button" className="input-reveal__btn" onClick={() => setVisible((v) => !v)} aria-pressed={visible}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+              <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+              {visible && <path d="M4 4l16 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />}
+            </svg>
+            <span className="sr-only">{visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}</span>
+          </button>
         </div>
       ) : (
         input
@@ -101,7 +115,7 @@ export function Login() {
     >
       <form className="form" onSubmit={onSubmit} noValidate>
         <Field id="login-email" label="Correo electrónico" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <Field id="login-password" label="Contraseña" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <Field id="login-password" label="Contraseña" reveal autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         {error && <p className="form-error form-error--block" role="alert">{error}</p>}
         <button type="submit" className="btn btn--primary btn--block" disabled={busy}>
           {busy ? 'Ingresando…' : 'Ingresar'}
@@ -175,8 +189,8 @@ export function Register() {
         </div>
         <Field id="reg-email" label="Correo electrónico" type="email" value={form.email} onChange={set('email')} autoComplete="email" error={errors.email} />
         <div className="form__row">
-          <Field id="reg-pass" label="Contraseña" type="password" value={form.password} onChange={set('password')} autoComplete="new-password" error={errors.password} hint="Mínimo 6 caracteres." />
-          <Field id="reg-confirm" label="Repetir contraseña" type="password" value={form.confirm} onChange={set('confirm')} autoComplete="new-password" error={errors.confirm} />
+          <Field id="reg-pass" label="Contraseña" reveal value={form.password} onChange={set('password')} autoComplete="new-password" error={errors.password} hint="Mínimo 6 caracteres." />
+          <Field id="reg-confirm" label="Repetir contraseña" reveal value={form.confirm} onChange={set('confirm')} autoComplete="new-password" error={errors.confirm} />
         </div>
         {errors.form && <p className="form-error form-error--block" role="alert">{errors.form}</p>}
         <button type="submit" className="btn btn--primary btn--block" disabled={busy}>
