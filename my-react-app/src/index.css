@@ -25,7 +25,8 @@
 
   --font-display: 'Bricolage Grotesque Variable', 'Arial Narrow', system-ui, sans-serif;
   --font-body: 'Geist Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
+  /* Números y rótulos: la misma familia de los títulos, con cifras de ancho fijo. */
+  --font-mono: 'Bricolage Grotesque Variable', 'Arial Narrow', system-ui, sans-serif;
 
   --radius-sm: 8px;
   --radius: 14px;
@@ -53,6 +54,14 @@
 
 html {
   scroll-padding-top: calc(var(--header-h) + 16px);
+}
+
+[class*='score'],
+.stats dd,
+.big-number,
+.pill,
+.chip span {
+  font-variant-numeric: tabular-nums;
 }
 
 body {
