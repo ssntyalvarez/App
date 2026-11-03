@@ -27,6 +27,6 @@ export async function login(page, { email, password }) {
 
 export async function logout(page) {
   await page.locator('.account__trigger').click()
-  await page.getByRole('button', { name: 'Cerrar sesión' }).click()
+  await page.locator('.account__menu').getByRole('button', { name: 'Cerrar sesión' }).click()
   await expect(page.locator('.site-header').getByRole('link', { name: 'Ingresar' })).toBeVisible()
 }

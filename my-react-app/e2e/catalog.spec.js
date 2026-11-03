@@ -85,3 +85,28 @@ test.describe('catálogo (RAWG simulado con juegos ficticios)', () => {
     expect(overflow).toBeLessThanOrEqual(0)
   })
 })
+
+test.describe('encabezado y footer', () => {
+  test('sin sesión: Ingresar y Crear cuenta arriba a la derecha y en el footer', async ({ page }) => {
+    await mockRawg(page)
+    await page.goto('/')
+    const header = page.locator('.header-account')
+    await expect(header.getByRole('link', { name: 'Ingresar' })).toBeVisible()
+    await expect(header.getByRole('link', { name: 'Crear cuenta' })).toBeVisible()
+    const footer = page.locator('.site-footer')
+    for (const name of ['Inicio', 'Catálogo', 'Ingresar', 'Crear cuenta']) {
+      await expect(footer.getByRole('link', { name, exact: true })).toBeVisible()
+    }
+    await footer.getByRole('link', { name: 'Crear cuenta' }).click()
+    await expect(page).toHaveURL(/\/registro$/)
+  })
+
+  test('@mobile en celular la cuenta se ve sin abrir el menú', async ({ page }) => {
+    await mockRawg(page)
+    await page.goto('/')
+    await expect(page.locator('.header-account').getByRole('link', { name: 'Ingresar' })).toBeVisible()
+    await expect(page.locator('.header-account').getByRole('link', { name: 'Crear cuenta' })).toBeVisible()
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    expect(overflow).toBeLessThanOrEqual(0)
+  })
+})

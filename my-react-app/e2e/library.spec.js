@@ -150,7 +150,7 @@ test.describe('biblioteca personal y perfil', () => {
     await expect(page.locator('.lib-card')).toHaveCount(1)
     await expect(page.locator('.lib-card')).toContainText('Su nota')
     await expect(page.getByRole('button', { name: 'Gestionar' })).toHaveCount(0)
-    await expect(page.getByRole('link', { name: 'Editar perfil' })).toHaveCount(0)
+    await expect(page.locator('main').getByRole('link', { name: 'Editar perfil' })).toHaveCount(0)
   })
 
   test('@mobile perfil en celular sin desbordes', async ({ page }) => {
