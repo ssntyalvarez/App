@@ -182,6 +182,11 @@ Dificultades:
 1. **Índice compuesto que el emulador no exige.** `average('score')` filtrado por `gameId` falló en el proyecto real con `FAILED_PRECONDITION: The query requires an index`. El emulador no valida índices, por eso no apareció antes. Se declaró el índice en `firestore.indexes.json` y la app calcula el promedio leyendo las opiniones mientras el índice no exista.
 2. **Dato de prueba huérfano.** El primer intento del script se cortó en ese error y borró las cuentas temporales antes que sus documentos: quedó la reseña `reviews/999999001_OhZjzJ…` (“temporal”, nota 0), que las reglas ya no permiten borrar a nadie salvo desde la consola. Se corrigió el script para borrar primero los documentos y se pidió eliminarla desde la consola de Firebase.
 
+### Ajuste de navegación pedido después de la iteración 3
+- **Arriba a la derecha:** sin sesión, “Ingresar” y “Crear cuenta” se ven siempre, también en celular (antes quedaban dentro del menú desplegable y desaparecían si faltaba Firebase). Con sesión, el botón **Mi cuenta** abre un menú con nombre, alias, Mi perfil, Mi biblioteca, Mis reseñas, Editar perfil y Cerrar sesión.
+- **Footer:** columnas “Explorar” (Inicio, Catálogo, Mejor puntuados, Lanzamientos recientes) y “Mi cuenta” con las mismas opciones del encabezado según haya sesión o no.
+- Pruebas: 3 nuevas de punta a punta (sin sesión, con sesión y en celular sin desborde horizontal); total 19/19.
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)

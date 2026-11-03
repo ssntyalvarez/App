@@ -107,3 +107,21 @@ test.describe('opiniones con Firebase (emuladores)', () => {
     await login(page, a)
   })
 })
+
+test('con sesión: “Mi cuenta” arriba a la derecha y opciones de cuenta en el footer', async ({ page }) => {
+  const user = await register(page, { name: 'Cuenta Footer' })
+  await page.locator('.account__trigger').click()
+  const menu = page.locator('.account__menu')
+  await expect(page.locator('.account__trigger')).toContainText('Mi cuenta')
+  await expect(menu).toContainText('Cuenta Footer')
+  for (const name of ['Mi perfil', 'Mi biblioteca', 'Mis reseñas', 'Editar perfil']) {
+    await expect(menu.getByRole('link', { name })).toBeVisible()
+  }
+  await page.keyboard.press('Escape')
+  const footer = page.locator('.site-footer')
+  await footer.getByRole('link', { name: 'Mis reseñas' }).click()
+  await expect(page).toHaveURL(new RegExp(`/u/${user.handle}\\?tab=resenas$`))
+  await footer.getByRole('button', { name: 'Cerrar sesión' }).click()
+  await expect(page.getByText('Cerraste sesión.')).toBeVisible()
+  await expect(page.locator('.header-account').getByRole('link', { name: 'Ingresar' })).toBeVisible()
+})

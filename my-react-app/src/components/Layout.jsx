@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate, useNavigation } from 'react-router'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
-import { firebaseReady } from '../lib/firebase.js'
 import Avatar from './Avatar.jsx'
 import Logo from './Logo.jsx'
 
@@ -38,10 +37,36 @@ function HeaderSearch({ onDone }) {
   )
 }
 
-function AccountMenu() {
-  const { user, profile, logout } = useAuth()
+// Cierre de sesión compartido por el menú de la cuenta y el footer.
+function useLogout() {
+  const { logout } = useAuth()
   const notify = useToast()
   const navigate = useNavigate()
+  return async () => {
+    try {
+      await logout()
+      notify('Cerraste sesión.')
+      navigate('/')
+    } catch {
+      notify('No se pudo cerrar sesión.', 'error')
+    }
+  }
+}
+
+// Opciones de la cuenta según haya sesión o no (se usan en el encabezado y en el footer).
+function accountLinks(profile) {
+  if (!profile) return [{ to: '/ajustes/perfil', label: 'Editar perfil' }]
+  return [
+    { to: `/u/${profile.handle}`, label: 'Mi perfil' },
+    { to: `/u/${profile.handle}`, label: 'Mi biblioteca' },
+    { to: `/u/${profile.handle}?tab=resenas`, label: 'Mis reseñas' },
+    { to: '/ajustes/perfil', label: 'Editar perfil' },
+  ]
+}
+
+function AccountMenu() {
+  const { user, profile } = useAuth()
+  const logout = useLogout()
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -61,8 +86,8 @@ function AccountMenu() {
     }
   }, [open])
 
-  if (!firebaseReady) return null
-
+  // Sin sesión (o sin Firebase configurado) siempre se ofrecen Ingresar y Crear cuenta;
+  // esas páginas explican si las cuentas todavía no están conectadas.
   if (!user) {
     return (
       <div className="account account--guest">
@@ -72,7 +97,6 @@ function AccountMenu() {
     )
   }
 
-  const name = profile?.displayName || 'Mi cuenta'
   return (
     <div className="account" ref={ref}>
       <button
@@ -82,37 +106,71 @@ function AccountMenu() {
         aria-haspopup="true"
         onClick={() => setOpen((o) => !o)}
       >
-        <Avatar profile={profile} size={34} />
-        <span className="account__name">{name}</span>
+        <Avatar profile={profile} size={32} />
+        <span className="account__name">Mi cuenta</span>
         <svg aria-hidden="true" viewBox="0 0 12 12" width="12" height="12">
           <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
         </svg>
       </button>
       {open && (
         <div className="account__menu">
-          {profile && (
-            <Link to={`/u/${profile.handle}`} onClick={() => setOpen(false)}>
-              Mi perfil
-            </Link>
-          )}
-          <Link to="/ajustes/perfil" onClick={() => setOpen(false)}>Editar perfil</Link>
+          <div className="account__who">
+            <strong>{profile?.displayName || 'Tu cuenta'}</strong>
+            {profile && <span className="muted">@{profile.handle}</span>}
+          </div>
+          {accountLinks(profile).map((l) => (
+            <Link key={l.label} to={l.to} onClick={() => setOpen(false)}>{l.label}</Link>
+          ))}
           <button
             type="button"
-            onClick={async () => {
+            className="account__logout"
+            onClick={() => {
               setOpen(false)
-              try {
-                await logout()
-                notify('Cerraste sesión.')
-                navigate('/')
-              } catch {
-                notify('No se pudo cerrar sesión.', 'error')
-              }
+              logout()
             }}
           >
             Cerrar sesión
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+function FooterLinks() {
+  const { user, profile } = useAuth()
+  const logout = useLogout()
+  return (
+    <div className="site-footer__nav">
+      <nav aria-label="Explorar">
+        <h2>Explorar</h2>
+        <ul>
+          <li><Link to="/">Inicio</Link></li>
+          <li><Link to="/juegos">Catálogo</Link></li>
+          <li><Link to="/juegos?orden=-metacritic">Mejor puntuados</Link></li>
+          <li><Link to="/juegos?orden=-released">Lanzamientos recientes</Link></li>
+        </ul>
+      </nav>
+      <nav aria-label="Mi cuenta">
+        <h2>Mi cuenta</h2>
+        <ul>
+          {user ? (
+            <>
+              {accountLinks(profile).map((l) => (
+                <li key={l.label}><Link to={l.to}>{l.label}</Link></li>
+              ))}
+              <li>
+                <button type="button" className="link-plain" onClick={logout}>Cerrar sesión</button>
+              </li>
+            </>
+          ) : (
+            <>
+              <li><Link to="/ingresar">Ingresar</Link></li>
+              <li><Link to="/registro">Crear cuenta</Link></li>
+            </>
+          )}
+        </ul>
+      </nav>
     </div>
   )
 }
@@ -140,6 +198,16 @@ export default function Layout() {
           <Link to="/" className="brand" aria-label="Checkpoint, inicio">
             <Logo />
           </Link>
+          <div id="site-nav" className={`site-nav ${menuOpen ? 'is-open' : ''}`}>
+            <nav aria-label="Principal">
+              <NavLink to="/" end>Inicio</NavLink>
+              <NavLink to="/juegos">Catálogo</NavLink>
+            </nav>
+            <HeaderSearch onDone={() => setMenuOpen(false)} />
+          </div>
+          <div className="header-account">
+            <AccountMenu />
+          </div>
           <button
             type="button"
             className="menu-toggle"
@@ -156,14 +224,6 @@ export default function Layout() {
               )}
             </svg>
           </button>
-          <div id="site-nav" className={`site-nav ${menuOpen ? 'is-open' : ''}`}>
-            <nav aria-label="Principal">
-              <NavLink to="/" end>Inicio</NavLink>
-              <NavLink to="/juegos">Catálogo</NavLink>
-            </nav>
-            <HeaderSearch onDone={() => setMenuOpen(false)} />
-            <AccountMenu />
-          </div>
         </div>
       </header>
       <main id="contenido" tabIndex={-1}>
@@ -171,7 +231,13 @@ export default function Layout() {
       </main>
       <footer className="site-footer">
         <div className="site-footer__inner">
-          <Logo small />
+          <div className="site-footer__top">
+            <div className="site-footer__brand">
+              <Logo small />
+              <p className="muted">Descubrí juegos, compará notas y armá tu biblioteca.</p>
+            </div>
+            <FooterLinks />
+          </div>
           <p>
             Datos de juegos, imágenes y puntuaciones de Metacritic provistos por{' '}
             <a href="https://rawg.io" target="_blank" rel="noopener noreferrer">RAWG</a>. Las notas de Metacritic
