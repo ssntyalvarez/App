@@ -51,6 +51,7 @@ function Featured({ game }) {
 
 // Presentación de marca cuando no hay un juego destacado para mostrar (sin datos inventados).
 function Intro() {
+  const { user, profile } = useAuth()
   return (
     <section className="intro container" aria-labelledby="intro-title">
       <p className="eyebrow">Checkpoint</p>
@@ -67,7 +68,11 @@ function Intro() {
       </ul>
       <div className="row">
         <Link to="/juegos" className="btn btn--primary btn--lg">Explorar el catálogo</Link>
-        <Link to="/registro" className="btn btn--ghost btn--lg">Crear cuenta</Link>
+        {user && profile ? (
+          <Link to={`/u/${profile.handle}`} className="btn btn--ghost btn--lg">Ir a mi perfil</Link>
+        ) : (
+          <Link to="/registro" className="btn btn--ghost btn--lg">Crear cuenta</Link>
+        )}
       </div>
     </section>
   )

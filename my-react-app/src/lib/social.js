@@ -6,6 +6,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  documentId,
   getDoc,
   getDocs,
   limit,
@@ -138,4 +139,30 @@ export function watchChats(uid, onData, onError) {
       ),
     onError,
   )
+}
+
+// ---------- Buscar personas ----------
+
+// Sin texto: las cuentas más nuevas. Con texto: coincidencias por comienzo del alias o del nombre.
+export async function searchPeople(text, max = 40) {
+  const q = text.trim().replace(/^@/, '')
+  if (!q) {
+    const snap = await getDocs(query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(max)))
+    return snap.docs.map((d) => ({ uid: d.id, ...d.data() }))
+  }
+  const handle = q.toLowerCase()
+  const capital = q.charAt(0).toUpperCase() + q.slice(1)
+  const byName = (prefix) =>
+    getDocs(query(collection(db, 'users'), where('displayName', '>=', prefix), where('displayName', '<', `${prefix}\uf8ff`), limit(20)))
+  const [handles, ...names] = await Promise.all([
+    getDocs(query(collection(db, 'handles'), where(documentId(), '>=', handle), where(documentId(), '<', `${handle}\uf8ff`), limit(20))),
+    byName(q),
+    ...(capital !== q ? [byName(capital)] : []),
+  ])
+  const found = new Map()
+  for (const snap of names) for (const d of snap.docs) found.set(d.id, { uid: d.id, ...d.data() })
+  const missing = handles.docs.map((d) => d.data().uid).filter((uid) => !found.has(uid))
+  const extra = await Promise.all(missing.map((uid) => getDoc(doc(db, 'users', uid))))
+  for (const d of extra) if (d.exists()) found.set(d.id, { uid: d.id, ...d.data() })
+  return [...found.values()].slice(0, max)
 }

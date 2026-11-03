@@ -18,6 +18,7 @@ export const router = createBrowserRouter([
       { path: 'u/:handle', lazy: page(() => import('./pages/Profile.jsx')) },
       { path: 'configuracion', lazy: page(() => import('./pages/ProfileEdit.jsx')) },
       { path: 'ajustes/perfil', lazy: page(() => import('./pages/ProfileEdit.jsx'), 'LegacyProfileEdit') },
+      { path: 'personas', lazy: page(() => import('./pages/People.jsx')) },
       { path: 'mensajes/:handle?', lazy: page(() => import('./pages/Messages.jsx')) },
       { path: 'ingresar', lazy: page(() => import('./pages/Auth.jsx'), 'Login') },
       { path: 'registro', lazy: page(() => import('./pages/Auth.jsx'), 'Register') },

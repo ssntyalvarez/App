@@ -17,6 +17,11 @@ export const RANKS = [
   { min: 18, title: 'Leyenda', tier: 'leyenda' },
 ]
 
+// Color del anillo, como en Steam: cambia cada dos niveles (gris → rojo → naranja → amarillo →
+// verde → azul → violeta → rosa → marrón → dorado).
+export const BANDS = ['gris', 'rojo', 'naranja', 'amarillo', 'verde', 'azul', 'violeta', 'rosa', 'marron', 'dorado']
+export const levelBand = (level) => BANDS[Math.min(Math.floor((level - 1) / 2), BANDS.length - 1)]
+
 export const reviewXp = (review) =>
   XP_PER_REVIEW + ((review.text?.trim().length ?? 0) >= DETAILED_LENGTH ? XP_DETAILED_BONUS : 0)
 
@@ -26,7 +31,7 @@ export function levelFromXp(xp) {
   const base = xpForLevel(level)
   const next = xpForLevel(level + 1)
   const rank = RANKS.filter((r) => level >= r.min).at(-1)
-  return { level, title: rank.title, tier: rank.tier, xp, base, next, progress: (xp - base) / (next - base), toNext: next - xp }
+  return { level, title: rank.title, tier: rank.tier, band: levelBand(level), xp, base, next, progress: (xp - base) / (next - base), toNext: next - xp }
 }
 
 export const levelFromReviews = (reviews) => levelFromXp(reviews.reduce((sum, r) => sum + reviewXp(r), 0))

@@ -117,7 +117,8 @@ test('con sesión: “Mi cuenta” arriba a la derecha y opciones de cuenta en e
   const menu = page.locator('.account__menu')
   await expect(page.locator('.account__trigger')).toContainText('Mi cuenta')
   await expect(menu).toContainText('Cuenta Footer')
-  for (const name of ['Mi perfil', 'Mensajes', 'Configuración']) {
+  await expect(menu.getByRole('link', { name: 'Mensajes' })).toHaveCount(0)
+  for (const name of ['Mi perfil', 'Configuración']) {
     await expect(menu.getByRole('link', { name })).toBeVisible()
   }
   await page.keyboard.press('Escape')
