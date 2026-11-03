@@ -15,7 +15,9 @@ service cloud.firestore {
     }
 
     function validHandle(h) {
-      return h is string && h.matches('^[a-z0-9_]{3,20}$');
+      // Como Instagram: letras, números, guion bajo y puntos (no al inicio, al final ni dobles).
+      return h is string && h.size() >= 3 && h.size() <= 30
+        && h.matches('^[a-z0-9_]+([.][a-z0-9_]+)*$');
     }
 
     // ---------- Perfiles públicos ----------

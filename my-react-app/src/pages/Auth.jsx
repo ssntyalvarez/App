@@ -10,20 +10,20 @@ import {
   createProfile,
   firestoreMessage,
   getUidByHandle,
+  MAX_HANDLE,
   normalizeHandle,
   validateProfileFields,
 } from '../lib/profiles.js'
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function AuthShell({ variant = 'login', docTitle, kicker, title, lead, children, footer }) {
+function AuthShell({ variant = 'login', docTitle, title, lead, children, footer }) {
   useDocumentTitle(docTitle ?? title)
   return (
     <div className={`auth auth--${variant}`}>
       {variant === 'login' ? <LoginArt /> : <RegisterArt />}
       <div className="auth__panel">
         <div className="auth__card">
-          {kicker && <p className="auth__kicker">{kicker}</p>}
           <h1>{title}</h1>
           {lead && <p className="muted">{lead}</p>}
           {firebaseReady ? children : <FirebasePending />}
@@ -34,11 +34,21 @@ function AuthShell({ variant = 'login', docTitle, kicker, title, lead, children,
   )
 }
 
-function Field({ id, label, error, hint, ...props }) {
+function Field({ id, label, error, hint, prefix, ...props }) {
+  const input = (
+    <input id={id} aria-invalid={error ? 'true' : undefined} aria-describedby={error ? `${id}-err` : hint ? `${id}-hint` : undefined} {...props} />
+  )
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
-      <input id={id} aria-invalid={error ? 'true' : undefined} aria-describedby={error ? `${id}-err` : hint ? `${id}-hint` : undefined} {...props} />
+      {prefix ? (
+        <div className="input-prefix">
+          <span aria-hidden="true">{prefix}</span>
+          {input}
+        </div>
+      ) : (
+        input
+      )}
       {hint && !error && <p id={`${id}-hint`} className="field__hint">{hint}</p>}
       {error && <p id={`${id}-err`} className="form-error">{error}</p>}
     </div>
@@ -81,7 +91,6 @@ export function Login() {
     <AuthShell
       variant="login"
       docTitle="Ingresar"
-      kicker="Ingresar"
       title="¡Hola de nuevo!"
       lead="Ingresá para seguir con tu biblioteca, tus notas y tus opiniones."
       footer={
@@ -151,7 +160,6 @@ export function Register() {
     <AuthShell
       variant="register"
       docTitle="Crear cuenta"
-      kicker="Es gratis · menos de un minuto"
       title="Creá tu cuenta"
       lead="Elegí tu nombre y tu alias. Tu correo se usa solo para iniciar sesión y no se muestra en tu perfil."
       footer={
@@ -163,7 +171,7 @@ export function Register() {
       <form className="form" onSubmit={onSubmit} noValidate>
         <div className="form__row">
           <Field id="reg-name" label="Nombre visible" value={form.displayName} onChange={set('displayName')} maxLength={40} autoComplete="nickname" error={errors.displayName} />
-          <Field id="reg-handle" label="Alias" value={form.handle} onChange={set('handle')} maxLength={20} autoComplete="username" error={errors.handle} hint={form.handle ? `checkpoint/u/${form.handle}` : 'Será la dirección de tu perfil.'} />
+          <Field id="reg-handle" label="Alias" prefix="@" value={form.handle} onChange={set('handle')} maxLength={MAX_HANDLE} autoComplete="username" autoCapitalize="none" spellCheck={false} error={errors.handle} hint={form.handle ? `Tu perfil: /u/${form.handle}` : 'Letras, números, _ y punto. Será la dirección de tu perfil.'} />
         </div>
         <Field id="reg-email" label="Correo electrónico" type="email" value={form.email} onChange={set('email')} autoComplete="email" error={errors.email} />
         <div className="form__row">
@@ -216,10 +224,10 @@ export function Welcome() {
   }
 
   return (
-    <AuthShell variant="register" kicker="Último paso" title="Completá tu perfil" lead="Elegí cómo te van a ver los demás en Checkpoint.">
+    <AuthShell variant="register" title="Completá tu perfil" lead="Elegí cómo te van a ver los demás en Checkpoint.">
       <form className="form" onSubmit={onSubmit} noValidate>
         <Field id="wel-name" label="Nombre visible" value={form.displayName} onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))} maxLength={40} error={errors.displayName} />
-        <Field id="wel-handle" label="Alias" value={form.handle} onChange={(e) => setForm((f) => ({ ...f, handle: normalizeHandle(e.target.value) }))} maxLength={20} error={errors.handle} hint="Minúsculas, números o guion bajo." />
+        <Field id="wel-handle" label="Alias" prefix="@" value={form.handle} onChange={(e) => setForm((f) => ({ ...f, handle: normalizeHandle(e.target.value) }))} maxLength={MAX_HANDLE} autoCapitalize="none" spellCheck={false} error={errors.handle} hint="Letras, números, _ y punto." />
         {errors.form && <p className="form-error form-error--block" role="alert">{errors.form}</p>}
         <button type="submit" className="btn btn--primary btn--block" disabled={busy}>
           {busy ? 'Guardando…' : 'Guardar perfil'}

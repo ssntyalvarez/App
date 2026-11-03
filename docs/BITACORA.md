@@ -194,6 +194,13 @@ Dificultades:
 - Dificultad: en celular el reparto no se veía porque el contenedor flexible tenía altura cero (los personajes están posicionados de forma absoluta); se resolvió con `flex: none` y altura fija.
 - Prueba nueva: títulos distintos y carga real de las imágenes; total 20/20, incluida la auditoría de accesibilidad.
 
+### Segunda vuelta de las pantallas de acceso y alias
+- **Composición:** todos los personajes se apoyan en el borde inferior, que los corta a la misma altura (antes Leon mostraba los pies y los demás no). Batman salió del póster, donde quedaba como un rectángulo cortado, y pasó a la rotación de Ingresar.
+- **Imágenes:** Leon nuevo de RE4 (2023), sin la firma del autor ni los huecos blancos entre el brazo y la escopeta; a Kratos se le quitó un fragmento de otra imagen que había en la esquina.
+- **Menos “estética de IA”:** se quitaron la píldora “Es gratis · menos de un minuto”, el rótulo pequeño sobre el título y el borde lima de la tarjeta.
+- **Alias como Instagram:** “@” fija adelante; solo letras, números, guion bajo y punto, de 3 a 30 caracteres, sin punto al inicio, al final ni dos seguidos. La regla está en la app y en `firestore.rules`.
+- Pruebas: 30 unitarias (incluye 13 de alias), 23 de reglas (incluye alias con puntos) y 20 de punta a punta.
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)
