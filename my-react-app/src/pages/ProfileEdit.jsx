@@ -75,7 +75,7 @@ function FavoritesManager({ uid, featured }) {
       )}
       <p className="field__hint">La estrella destaca hasta {MAX_FEATURED} juegos al principio de tu perfil.</p>
 
-      <div className="field">
+      <div className="field" data-tour="favoritos">
         <label htmlFor="fav-search">Agregar un juego</label>
         <input id="fav-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscá por nombre" maxLength={80} autoComplete="off" />
       </div>
@@ -174,7 +174,7 @@ function EditForm({ user, profile }) {
 
   return (
     <form className="profile-edit" onSubmit={onSubmit} noValidate>
-      <div className="profile-edit__preview" aria-label="Vista previa">
+      <div className="profile-edit__preview" aria-label="Vista previa" data-tour="perfil">
         <div className="profile-edit__cover is-default" />
         <div className="profile-edit__id">
           {/* La foto se cambia pasando el mouse (o con el teclado) sobre el avatar. */}

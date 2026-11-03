@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import Avatar from '../components/Avatar.jsx'
 import EntryEditor from '../components/EntryEditor.jsx'
 import GameImage from '../components/GameImage.jsx'
+import { TaskChecklist } from '../components/Onboarding.jsx'
 import { PersonalScore } from '../components/Scores.jsx'
 import { EmptyState, ErrorState, FirebasePending, Spinner } from '../components/States.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -282,6 +283,8 @@ export default function Profile() {
             <dd>{library.isPending ? '…' : entries.length}</dd>
           </div>
         </dl>
+
+        {isOwner && <TaskChecklist />}
 
         {(featured.length > 0 || isOwner) && (
           <section className="section featured-games" aria-labelledby="destacados">

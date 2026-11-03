@@ -218,6 +218,12 @@ A pedido del autor se simplificó el modelo:
 - **Editar perfil:** sin “Imagen de portada”; la foto se cambia pasando el mouse sobre el avatar de la vista previa.
 - Reglas reescritas para el nuevo formato (reseñas con `playtimeHours`, biblioteca sin estados, espera del alias). Pruebas: 25 de reglas, 30 unitarias y 21 de punta a punta.
 
+### Tutorial de primeros pasos y selector de año
+- **Tutorial:** al crear la cuenta aparece una ventana por tarea (personalizar perfil, agregar favoritos, opinar), con “Ir a hacerlo”, “Omitir” y “Omitir el tutorial”. “Ir a hacerlo” lleva a la pantalla y marca dónde tocar con un borde lima que late y un cartel “Tocá acá”. Al completar la tarea con datos reales se avisa y se pasa a la siguiente.
+- **Lista de tareas:** si se omite, la lista “Primeros pasos” (con progreso real) queda en el Inicio y en el perfil propio hasta completar todo. Sin sesión, propone crear cuenta o ingresar. El estado del tutorial es una preferencia de interfaz y se guarda en el navegador; el progreso se calcula con los datos de Firestore.
+- **Año:** el desplegable de 50 años pasó a un selector en dos pasos (década → año), con opción de filtrar la década completa.
+- Pruebas: 23/23 de punta a punta (nuevas: tutorial completo y filtro por década).
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)

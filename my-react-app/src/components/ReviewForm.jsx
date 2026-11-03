@@ -126,7 +126,7 @@ export default function ReviewForm({ game, existing }) {
   }
 
   return (
-    <form className="review-form" onSubmit={onSubmit} noValidate>
+    <form className="review-form" onSubmit={onSubmit} noValidate data-tour="opinion">
       <h3>{existing ? 'Editar tu opinión' : 'Escribí tu opinión'}</h3>
       <div className="field field--hours">
         <label htmlFor="review-hours">Horas jugadas</label>
