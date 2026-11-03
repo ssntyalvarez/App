@@ -197,9 +197,13 @@ export async function handleRawgRequest(url, { apiKey, fetchImpl = fetch } = {})
 
   let res
   try {
-    res = await fetchImpl(target, { headers: { Accept: 'application/json' } })
-  } catch {
-    return json(502, { error: 'No se pudo contactar a RAWG.', code: 'upstream_unreachable' })
+    res = await fetchImpl(target, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(10000) })
+  } catch (err) {
+    const timeout = err?.name === 'TimeoutError'
+    return json(timeout ? 504 : 502, {
+      error: timeout ? 'RAWG tardó demasiado en responder.' : 'No se pudo contactar a RAWG.',
+      code: timeout ? 'upstream_timeout' : 'upstream_unreachable',
+    })
   }
   if (res.status === 404) return json(404, { error: 'Juego no encontrado.', code: 'not_found' }, 600)
   if (res.status === 401 || res.status === 403) {
@@ -208,7 +212,12 @@ export async function handleRawgRequest(url, { apiKey, fetchImpl = fetch } = {})
   if (res.status === 429) return json(429, { error: 'Se alcanzó el límite de consultas de RAWG.', code: 'rate_limited' })
   if (!res.ok) return json(502, { error: 'RAWG respondió con un error.', code: 'upstream_error' })
 
-  const body = upstream.shape(await res.json())
+  let body
+  try {
+    body = upstream.shape(await res.json())
+  } catch {
+    return json(502, { error: 'RAWG devolvió una respuesta inválida.', code: 'upstream_error' })
+  }
   if (memoryCache.size >= MEMORY_MAX) memoryCache.delete(memoryCache.keys().next().value)
   memoryCache.set(cacheKey, { body, expires: Date.now() + MEMORY_TTL })
   return json(200, body, upstream.maxAge)

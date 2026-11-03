@@ -15,11 +15,19 @@ function rawgDevApi(apiKey) {
           res.end()
           return
         }
-        const url = new URL(req.originalUrl, 'http://localhost')
-        const result = await handleRawgRequest(url.href, { apiKey })
-        res.statusCode = result.status
-        for (const [k, v] of Object.entries(result.headers)) res.setHeader(k, v)
-        res.end(JSON.stringify(result.body))
+        // Ante cualquier fallo se responde con un error: una petición sin respuesta deja la app cargando.
+        try {
+          const url = new URL(req.originalUrl, 'http://localhost')
+          const result = await handleRawgRequest(url.href, { apiKey })
+          res.statusCode = result.status
+          for (const [k, v] of Object.entries(result.headers)) res.setHeader(k, v)
+          res.end(JSON.stringify(result.body))
+        } catch (err) {
+          server.config.logger.error(`[api/rawg] ${err?.stack || err}`)
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json; charset=utf-8')
+          res.end(JSON.stringify({ error: 'Error interno al consultar RAWG.', code: 'internal' }))
+        }
       })
     },
   }

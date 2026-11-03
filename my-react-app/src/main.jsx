@@ -16,7 +16,7 @@ const queryClient = new QueryClient({
       gcTime: 30 * 60 * 1000,
       refetchOnWindowFocus: false,
       // Errores de configuración (p. ej. falta la clave) no se reintentan.
-      retry: (count, err) => !['missing_key', 'bad_param', 'not_found', 'bad_key'].includes(err?.code) && count < 2,
+      retry: (count, err) => !['missing_key', 'bad_param', 'not_found', 'bad_key', 'upstream_timeout'].includes(err?.code) && count < 2,
     },
   },
 })
