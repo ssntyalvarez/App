@@ -201,6 +201,15 @@ Dificultades:
 - **Alias como Instagram:** “@” fija adelante; solo letras, números, guion bajo y punto, de 3 a 30 caracteres, sin punto al inicio, al final ni dos seguidos. La regla está en la app y en `firestore.rules`.
 - Pruebas: 30 unitarias (incluye 13 de alias), 23 de reglas (incluye alias con puntos) y 20 de punta a punta.
 
+### Recortes con IA de segmentación y ajustes de formularios
+- **Mejor recorte:** el método por color (relleno desde las esquinas) dejaba un halo blanco alrededor de Snake y Leon. Se pasó a **rembg** con el modelo `isnet-general-use` y *alpha matting*, que detecta la silueta y suaviza el borde. Así se reprocesaron Snake, Leon y Link.
+- **Pie de cada personaje con su juego exacto:** Big Boss · Metal Gear Solid: Peace Walker; Leon · Resident Evil 4 (2023); Kratos · God of War (2018); Link · Breath of the Wild; Batman · Arkham City.
+- **Contraseñas con “ojito”** para mostrar u ocultar lo escrito (ingreso y registro).
+- **“@” del alias** alineada con el texto del campo.
+- **Nombre del perfil** tal como lo escribió la persona: antes se forzaba a mayúsculas por estilo.
+- **Cambiar la foto desde el perfil:** al pasar el mouse (o enfocar con el teclado) sobre el avatar propio aparece “Cambiar foto”. En pantallas táctiles se muestra un botón pequeño fijo.
+- Pruebas: 21/21 de punta a punta (nuevas: ojito, cambio de foto y nombre sin mayúsculas forzadas).
+
 ---
 
 ## Configuración pendiente (al cierre de la iteración 3)

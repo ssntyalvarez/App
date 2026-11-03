@@ -163,3 +163,30 @@ test.describe('biblioteca personal y perfil', () => {
     expect(overflow).toBeLessThanOrEqual(0)
   })
 })
+
+test('perfil propio: cambiar la foto desde el avatar y nombre sin forzar mayúsculas', async ({ page }) => {
+  await mockRawg(page)
+  const user = await register(page, { name: 'santy minúsculas' })
+  await expect(page).toHaveURL(new RegExp(`/u/${user.handle}$`))
+  // El nombre se ve tal cual se escribió (sin text-transform).
+  const h1 = page.getByRole('heading', { level: 1 })
+  await expect(h1).toHaveText('santy minúsculas')
+  expect(await h1.evaluate((el) => getComputedStyle(el).textTransform)).toBe('none')
+  const png = Buffer.from(
+    await page.evaluate(() => {
+      const c = document.createElement('canvas')
+      c.width = 200
+      c.height = 200
+      c.getContext('2d').fillRect(0, 0, 200, 200)
+      return c.toDataURL('image/png').split(',')[1]
+    }),
+    'base64',
+  )
+  await page.locator('.avatar-editable').hover()
+  await expect(page.getByRole('button', { name: 'Cambiar foto' })).toBeVisible()
+  await page.getByLabel('Elegir foto de perfil').setInputFiles({ name: 'yo.png', mimeType: 'image/png', buffer: png })
+  await expect(page.getByText('Foto de perfil actualizada.')).toBeVisible()
+  await expect(page.locator('.avatar-editable img.avatar')).toBeVisible()
+  await page.reload()
+  await expect(page.locator('.avatar-editable img.avatar')).toBeVisible()
+})

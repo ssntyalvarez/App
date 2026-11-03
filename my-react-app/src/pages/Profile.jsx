@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import Avatar from '../components/Avatar.jsx'
@@ -10,10 +10,11 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { formatAverage, formatDate, formatMonth, gamePath, rawgImage } from '../lib/format.js'
-import { invalidateReviewData, useDocumentTitle, useLibrary, useProfileByHandle, useUserReviews } from '../lib/hooks.js'
+import { invalidateProfileData, invalidateReviewData, useDocumentTitle, useLibrary, useProfileByHandle, useUserReviews } from '../lib/hooks.js'
 import { MAX_FEATURED, STATUSES, statusLabel } from '../lib/library.js'
 import { useLibraryActions } from '../lib/libraryActions.js'
-import { firestoreMessage } from '../lib/profiles.js'
+import { fileToAvatar } from '../lib/image.js'
+import { firestoreMessage, updateProfile } from '../lib/profiles.js'
 import { deleteReview } from '../lib/reviews.js'
 
 const FILTERS = [{ value: 'all', label: 'Todos' }, ...STATUSES, { value: 'favorites', label: 'Favoritos' }]
@@ -44,6 +45,45 @@ function ShareButton({ profile }) {
       </svg>
       Compartir perfil
     </button>
+  )
+}
+
+// En el perfil propio, el avatar se puede cambiar al pasar el mouse o con el teclado.
+function EditableAvatar({ profile }) {
+  const notify = useToast()
+  const queryClient = useQueryClient()
+  const inputRef = useRef(null)
+  const [busy, setBusy] = useState(false)
+
+  const onFile = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || busy) return
+    setBusy(true)
+    try {
+      const avatar = await fileToAvatar(file)
+      await updateProfile(profile.uid, profile, { avatar })
+      invalidateProfileData(queryClient)
+      notify('Foto de perfil actualizada.')
+    } catch (err) {
+      notify(err?.code ? firestoreMessage(err) : err.message, 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className={`avatar-editable ${busy ? 'is-busy' : ''}`}>
+      <Avatar profile={profile} size={132} className="profile-hero__avatar" />
+      <button type="button" className="avatar-editable__btn" onClick={() => inputRef.current?.click()} disabled={busy}>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+        <span>{busy ? 'Subiendo…' : 'Cambiar foto'}</span>
+      </button>
+      <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" tabIndex={-1} onChange={onFile} aria-label="Elegir foto de perfil" />
+    </div>
   )
 }
 
@@ -216,7 +256,11 @@ export default function Profile() {
       <header className="profile-hero">
         <div className={`profile-hero__cover ${cover ? '' : 'is-default'}`} style={cover ? { backgroundImage: `url("${cover}")` } : undefined} aria-hidden="true" />
         <div className="container profile-hero__inner">
-          <Avatar profile={profile} size={132} className="profile-hero__avatar" />
+          {isOwner ? (
+            <EditableAvatar profile={profile} />
+          ) : (
+            <Avatar profile={profile} size={132} className="profile-hero__avatar" />
+          )}
           <div className="profile-hero__text">
             <h1>{profile.displayName}</h1>
             <p className="profile-hero__handle">
