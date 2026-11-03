@@ -9,6 +9,10 @@ Aplicación web para **descubrir videojuegos, comparar puntuaciones y opinar**, 
 - **Biblioteca personal:** los juegos que te gustan, con hasta 4 destacados en el perfil. Se agregan desde la ficha o desde Editar perfil.
 - **Opiniones estilo Steam:** horas jugadas, puntuación de 0 a 10 y una reseña escrita. La nota y las horas de cada juego del perfil salen siempre de tu reseña.
 
+- **Social:** seguir perfiles; si se siguen mutuamente son amigos. Sugerencias de amigos de amigos y chat 1 a 1 en tiempo real.
+- **Configuración** (engranaje en tu perfil): perfil público, privacidad (quién puede escribirte: cualquiera, amigos de amigos, solo amigos o nadie; mostrar seguidores y horas) y cuenta (correo privado, cambio de contraseña). Todas las cuentas son públicas.
+- **Niveles y XP:** cada juego que opinás suma 100 XP (+50 si la reseña es detallada). Rangos con color propio: Novato, Aprendiz, Jugador, Veterano, Experto y Leyenda.
+
 La evolución por iteraciones, las pruebas, las dificultades y la justificación del diseño están en la [bitácora](docs/BITACORA.md).
 
 > **Estado actual:** el catálogo de RAWG funciona con datos reales en desarrollo local. Falta crear el proyecto de Firebase y publicar en Vercel; cuentas, opiniones y biblioteca se verificaron con los emuladores de Firebase (ver “Verificación”).
@@ -94,6 +98,8 @@ No hace falta el plan Blaze ni Firebase Storage: el avatar se comprime en el nav
 | `handles/{alias}` | `{ uid }` para alias únicos y URLs de perfil | Solo el dueño |
 | `reviews/{gameId}_{uid}` | Horas jugadas, puntuación 0–10, reseña (10–2000 caracteres) y datos básicos del juego | Solo el autor |
 | `libraries/{uid}/games/{gameId}` | Juego favorito (datos básicos del juego) | Solo el dueño |
+| `follows/{seguidor}_{seguido}` | Quién sigue a quién (amigos = mutuo) | Solo el seguidor |
+| `chats/{a}_{b}` y `messages/` | Conversaciones 1 a 1 | Solo sus dos integrantes (lectura y escritura) |
 
 Todo es de lectura pública; el correo y la contraseña quedan en Firebase Authentication y nunca se guardan en Firestore.
 

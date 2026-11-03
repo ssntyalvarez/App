@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing'
-import { deleteDoc, doc, getDoc, getDocs, collection, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore'
+import { addDoc, deleteDoc, doc, getDoc, getDocs, collection, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore'
 
 let env
 
@@ -220,5 +220,89 @@ describe('cambio de alias', () => {
     await createProfile(as('ana'), 'ana', 'ana_g')
     await change(as('ana'), 'ana', 'ana_g', 'ana.nueva')
     await assertFails(updateDoc(doc(as('ana'), 'users', 'ana'), { handleChangedAt: new Date(2000, 0, 1), updatedAt: serverTimestamp() }))
+  })
+})
+
+describe('seguir y amigos', () => {
+  const fol = (db, a, b) => setDoc(doc(db, 'follows', `${a}_${b}`), { follower: a, followed: b, createdAt: serverTimestamp() })
+
+  it('solo se puede seguir en nombre propio, a un perfil existente y no a uno mismo', async () => {
+    await createProfile(as('ana'), 'ana', 'ana_g')
+    await createProfile(as('beto'), 'beto', 'beto_g')
+    await assertSucceeds(fol(as('beto'), 'beto', 'ana'))
+    await assertFails(fol(as('beto'), 'ana', 'beto'))
+    await assertFails(fol(as('beto'), 'beto', 'beto'))
+    await assertFails(fol(as('beto'), 'beto', 'fantasma'))
+    await assertSucceeds(getDocs(query(collection(anon(), 'follows'), where('followed', '==', 'ana'))))
+  })
+
+  it('solo el seguidor puede dejar de seguir', async () => {
+    await createProfile(as('ana'), 'ana', 'ana_g')
+    await fol(as('beto'), 'beto', 'ana')
+    await assertFails(deleteDoc(doc(as('ana'), 'follows', 'beto_ana')))
+    await assertSucceeds(deleteDoc(doc(as('beto'), 'follows', 'beto_ana')))
+  })
+
+  it('valida la configuración de privacidad', async () => {
+    await createProfile(as('ana'), 'ana', 'ana_g')
+    const ref = doc(as('ana'), 'users', 'ana')
+    await assertSucceeds(updateDoc(ref, { settings: { messages: 'friends', showFollows: false, showHours: true }, updatedAt: serverTimestamp() }))
+    await assertFails(updateDoc(ref, { settings: { messages: 'todos' }, updatedAt: serverTimestamp() }))
+    await assertFails(updateDoc(ref, { settings: { private: true }, updatedAt: serverTimestamp() }))
+  })
+})
+
+describe('chat', () => {
+  const fol = (a, b) => setDoc(doc(as(a), 'follows', `${a}_${b}`), { follower: a, followed: b, createdAt: serverTimestamp() })
+  const start = (me, other, text = 'Hola!', via) => {
+    const db = as(me)
+    const members = [me, other].sort()
+    const id = members.join('_')
+    const b = writeBatch(db)
+    b.set(doc(db, 'chats', id), {
+      members, ...(via ? { via } : {}), createdAt: serverTimestamp(), updatedAt: serverTimestamp(), lastText: text, lastSender: me,
+    })
+    b.set(doc(collection(db, 'chats', id, 'messages')), { sender: me, text, createdAt: serverTimestamp() })
+    return b.commit()
+  }
+  const setMessages = (uid, messages) =>
+    updateDoc(doc(as(uid), 'users', uid), { settings: { messages }, updatedAt: serverTimestamp() })
+
+  beforeEach(async () => {
+    for (const u of ['ana', 'beto', 'caro', 'dani']) await createProfile(as(u), u, `${u}_g`)
+  })
+
+  it('cualquiera puede escribir si la otra persona lo permite; solo los integrantes leen', async () => {
+    await assertSucceeds(start('ana', 'beto'))
+    await assertSucceeds(getDocs(collection(as('beto'), 'chats', 'ana_beto', 'messages')))
+    await assertFails(getDocs(collection(as('caro'), 'chats', 'ana_beto', 'messages')))
+    await assertFails(getDoc(doc(as('caro'), 'chats', 'ana_beto')))
+    await assertSucceeds(getDocs(query(collection(as('beto'), 'chats'), where('members', 'array-contains', 'beto'))))
+  })
+
+  it('“solo amigos” exige seguimiento mutuo; “nadie” bloquea conversaciones nuevas', async () => {
+    await setMessages('beto', 'friends')
+    await assertFails(start('ana', 'beto'))
+    await fol('ana', 'beto')
+    await fol('beto', 'ana')
+    await assertSucceeds(start('ana', 'beto'))
+    await setMessages('caro', 'nobody')
+    await assertFails(start('ana', 'caro'))
+  })
+
+  it('“amigos de amigos” exige un amigo en común indicado en via', async () => {
+    await setMessages('caro', 'fof')
+    // ana ↔ beto y beto ↔ caro son amigos; ana y caro no.
+    for (const [a, b] of [['ana', 'beto'], ['beto', 'ana'], ['beto', 'caro'], ['caro', 'beto']]) await fol(a, b)
+    await assertFails(start('ana', 'caro'))
+    await assertFails(start('ana', 'caro', 'Hola', 'dani'))
+    await assertSucceeds(start('ana', 'caro', 'Hola', 'beto'))
+  })
+
+  it('no se puede escribir en nombre de otra persona ni en chats ajenos', async () => {
+    await start('ana', 'beto')
+    await assertFails(addDoc(collection(as('ana'), 'chats', 'ana_beto', 'messages'), { sender: 'beto', text: 'falso', createdAt: serverTimestamp() }))
+    await assertFails(addDoc(collection(as('caro'), 'chats', 'ana_beto', 'messages'), { sender: 'caro', text: 'hola', createdAt: serverTimestamp() }))
+    await assertFails(start('caro', 'dani'.replace('dani', 'ana'), 'x'.repeat(141)))
   })
 })

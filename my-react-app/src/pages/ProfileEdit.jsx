@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import Avatar from '../components/Avatar.jsx'
 import GameImage from '../components/GameImage.jsx'
 import { FirebasePending, Spinner } from '../components/States.jsx'
-import { useAuth } from '../context/AuthContext.jsx'
+import { authMessage, useAuth } from '../context/AuthContext.jsx'
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth'
+import { MESSAGE_OPTIONS, settingsOf } from '../lib/social.js'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { formatDate } from '../lib/format.js'
@@ -248,23 +250,188 @@ function EditForm({ user, profile }) {
   )
 }
 
-export default function ProfileEdit() {
+function PrivacySettings({ user, profile }) {
+  const notify = useToast()
+  const queryClient = useQueryClient()
+  const [settings, setSettings] = useState(() => settingsOf(profile))
+  const [busy, setBusy] = useState(false)
+  const set = (k, v) => setSettings((x) => ({ ...x, [k]: v }))
+
+  const onSubmit = async (e) => {
+    e.preventDefault()
+    if (busy) return
+    setBusy(true)
+    try {
+      await updateProfile(user.uid, profile, { settings })
+      invalidateProfileData(queryClient)
+      notify('Privacidad actualizada.')
+    } catch (err) {
+      notify(firestoreMessage(err), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form className="panel form settings-form" onSubmit={onSubmit}>
+      <p className="hint-box">
+        Todas las cuentas de Checkpoint son públicas: cualquiera puede ver tu perfil, tus favoritos y tus reseñas.
+        Acá elegís quién puede escribirte y qué datos se muestran en tu perfil.
+      </p>
+      <fieldset className="radio-list">
+        <legend>¿Quién puede enviarte mensajes?</legend>
+        {MESSAGE_OPTIONS.map((o) => (
+          <label key={o.value}>
+            <input type="radio" name="messages" value={o.value} checked={settings.messages === o.value} onChange={() => set('messages', o.value)} />
+            <span>{o.label}</span>
+          </label>
+        ))}
+        <p className="field__hint">Los amigos son las personas que te siguen y a las que seguís. Se aplica a conversaciones nuevas.</p>
+      </fieldset>
+      <label className="switch">
+        <input type="checkbox" checked={settings.showFollows} onChange={(e) => set('showFollows', e.target.checked)} />
+        <span>Mostrar mis seguidores, seguidos y amigos en mi perfil</span>
+      </label>
+      <label className="switch">
+        <input type="checkbox" checked={settings.showHours} onChange={(e) => set('showHours', e.target.checked)} />
+        <span>Mostrar el total de horas jugadas en mi perfil (las horas de cada reseña siguen visibles en la reseña)</span>
+      </label>
+      <div className="row">
+        <button type="submit" className="btn btn--primary" disabled={busy}>{busy ? 'Guardando…' : 'Guardar privacidad'}</button>
+      </div>
+    </form>
+  )
+}
+
+function AccountSettings({ user }) {
+  const notify = useToast()
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+  const [form, setForm] = useState({ current: '', next: '', confirm: '' })
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+
+  const onSubmit = async (e) => {
+    e.preventDefault()
+    if (busy) return
+    if (form.next.length < 6) return setError('La contraseña nueva debe tener al menos 6 caracteres.')
+    if (form.next !== form.confirm) return setError('Las contraseñas nuevas no coinciden.')
+    setError('')
+    setBusy(true)
+    try {
+      await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, form.current))
+      await updatePassword(user, form.next)
+      setForm({ current: '', next: '', confirm: '' })
+      notify('Contraseña actualizada.')
+    } catch (err) {
+      setError(authMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="settings-stack">
+      <section className="panel">
+        <h2 className="panel__title">Correo</h2>
+        <p>{user.email}</p>
+        <p className="field__hint">Es privado: solo lo ves vos y se usa para iniciar sesión.</p>
+      </section>
+      <form className="panel form" onSubmit={onSubmit} noValidate>
+        <h2 className="panel__title">Cambiar contraseña</h2>
+        <div className="field">
+          <label htmlFor="acc-current">Contraseña actual</label>
+          <input id="acc-current" type="password" autoComplete="current-password" value={form.current} onChange={set('current')} />
+        </div>
+        <div className="form__row">
+          <div className="field">
+            <label htmlFor="acc-next">Contraseña nueva</label>
+            <input id="acc-next" type="password" autoComplete="new-password" value={form.next} onChange={set('next')} />
+          </div>
+          <div className="field">
+            <label htmlFor="acc-confirm">Repetir contraseña nueva</label>
+            <input id="acc-confirm" type="password" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} />
+          </div>
+        </div>
+        {error && <p className="form-error form-error--block" role="alert">{error}</p>}
+        <div className="row">
+          <button type="submit" className="btn btn--primary" disabled={busy}>{busy ? 'Guardando…' : 'Cambiar contraseña'}</button>
+        </div>
+      </form>
+      <section className="panel">
+        <h2 className="panel__title">Sesión</h2>
+        <button
+          type="button"
+          className="btn btn--danger"
+          onClick={async () => {
+            await logout()
+            notify('Cerraste sesión.')
+            navigate('/')
+          }}
+        >
+          Cerrar sesión
+        </button>
+      </section>
+    </div>
+  )
+}
+
+const SECTIONS = [
+  { value: 'perfil', label: 'Perfil' },
+  { value: 'privacidad', label: 'Privacidad' },
+  { value: 'cuenta', label: 'Cuenta' },
+]
+
+// Configuración: perfil público, privacidad y cuenta.
+export default function Settings() {
   const { user, profile, loading } = useAuth()
-  useDocumentTitle('Editar perfil')
+  const [params, setParams] = useSearchParams()
+  const { hash } = useLocation()
+  const section = SECTIONS.some((x) => x.value === params.get('seccion')) ? params.get('seccion') : 'perfil'
+  useDocumentTitle('Configuración')
   if (!firebaseReady) return <div className="page container"><FirebasePending /></div>
   if (loading) return <div className="page container"><Spinner /></div>
-  if (!user) return <Navigate to="/ingresar" replace state={{ from: '/ajustes/perfil' }} />
+  if (!user) return <Navigate to="/ingresar" replace state={{ from: '/configuracion' }} />
   if (!profile) return <Navigate to="/bienvenida" replace />
   return (
     <div className="page container container--narrow">
       <header className="page-head">
-        <p className="eyebrow">Ajustes</p>
-        <h1>Editar perfil</h1>
-        <p className="page-head__lead">
-          Todo lo de esta página es público. Tu correo ({user.email}) es privado: solo lo ves vos.
+        <p className="eyebrow">
+          <Link to={`/u/${profile.handle}`}>← Mi perfil</Link>
         </p>
+        <h1>Configuración</h1>
       </header>
-      <EditForm user={user} profile={profile} />
+      <nav className="settings-nav" aria-label="Secciones de configuración">
+        {SECTIONS.map((x) => (
+          <Link
+            key={x.value}
+            to={x.value === 'perfil' ? `/configuracion${hash}` : `/configuracion?seccion=${x.value}`}
+            className={section === x.value ? 'is-active' : ''}
+            aria-current={section === x.value ? 'page' : undefined}
+            onClick={(e) => {
+              e.preventDefault()
+              setParams(x.value === 'perfil' ? {} : { seccion: x.value })
+            }}
+          >
+            {x.label}
+          </Link>
+        ))}
+      </nav>
+      {section === 'perfil' && (
+        <>
+          <p className="page-head__lead settings-lead">Todo lo de esta sección es público.</p>
+          <EditForm user={user} profile={profile} />
+        </>
+      )}
+      {section === 'privacidad' && <PrivacySettings user={user} profile={profile} />}
+      {section === 'cuenta' && <AccountSettings user={user} />}
     </div>
   )
+}
+
+// Ruta anterior: /configuracion → /configuracion (conserva #favoritos).
+export function LegacyProfileEdit() {
+  const { hash } = useLocation()
+  return <Navigate to={`/configuracion${hash}`} replace />
 }

@@ -7,6 +7,7 @@ import { firebaseReady } from './firebase.js'
 import { getCommunityStats, listGameReviews, listRecentReviews, listUserReviews } from './reviews.js'
 import { getProfile, getProfileByHandle } from './profiles.js'
 import { listLibrary } from './library.js'
+import { getConnections, suggestFriendsOfFriends } from './social.js'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -132,4 +133,28 @@ export function useLibrary(uid) {
 export function invalidateProfileData(queryClient) {
   queryClient.invalidateQueries({ queryKey: ['profile'] })
   queryClient.invalidateQueries({ queryKey: ['profile-handle'] })
+}
+
+// ---------- Social ----------
+
+export function useConnections(uid) {
+  return useQuery({
+    queryKey: ['connections', uid],
+    queryFn: () => getConnections(uid),
+    enabled: firebaseReady && !!uid,
+  })
+}
+
+export function useSuggestions(uid, connections) {
+  return useQuery({
+    queryKey: ['suggestions', uid, connections?.friends.length, connections?.following.length],
+    queryFn: () => suggestFriendsOfFriends(uid, connections.friends, connections.following),
+    enabled: firebaseReady && !!uid && !!connections,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function invalidateSocialData(queryClient) {
+  queryClient.invalidateQueries({ queryKey: ['connections'] })
+  queryClient.invalidateQueries({ queryKey: ['suggestions'] })
 }

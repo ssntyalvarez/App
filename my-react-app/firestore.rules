@@ -27,8 +27,17 @@ service cloud.firestore {
       return v is string && v.size() <= 400 && v.matches('^https://media[.]rawg[.]io/.*');
     }
 
+    // Privacidad: quién puede escribirme y qué se muestra en el perfil (las cuentas son siempre públicas).
+    function validSettings(s) {
+      return s is map
+        && s.keys().hasOnly(['messages', 'showFollows', 'showHours'])
+        && (!('messages' in s) || s.messages in ['everyone', 'fof', 'friends', 'nobody'])
+        && (!('showFollows' in s) || s.showFollows is bool)
+        && (!('showHours' in s) || s.showHours is bool);
+    }
+
     function validProfile(d) {
-      return d.keys().hasOnly(['displayName', 'handle', 'bio', 'avatar', 'coverUrl', 'featured', 'handleChangedAt', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['displayName', 'handle', 'bio', 'avatar', 'coverUrl', 'featured', 'handleChangedAt', 'settings', 'createdAt', 'updatedAt'])
         && d.displayName is string && d.displayName.size() >= 1 && d.displayName.size() <= 40
         && validHandle(d.handle)
         && (!('bio' in d) || (d.bio is string && d.bio.size() <= 160))
@@ -40,6 +49,7 @@ service cloud.firestore {
         && (!('coverUrl' in d) || d.coverUrl == '' || isRawgImage(d.coverUrl))
         // Hasta cuatro juegos destacados (ids de RAWG).
         && (!('featured' in d) || (d.featured is list && d.featured.size() <= 4))
+        && (!('settings' in d) || validSettings(d.settings))
         && d.updatedAt == request.time;
     }
 
@@ -154,6 +164,88 @@ service cloud.firestore {
         && request.resource.data.addedAt == resource.data.addedAt;
 
       allow delete: if isOwner(uid);
+    }
+
+    // ---------- Seguir ----------
+    // follows/{seguidor}_{seguido}. Dos personas que se siguen mutuamente son amigas.
+    function follows(a, b) {
+      return exists(/databases/$(database)/documents/follows/$(a + '_' + b));
+    }
+
+    function friends(a, b) {
+      return follows(a, b) && follows(b, a);
+    }
+
+    match /follows/{followId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['follower', 'followed', 'createdAt'])
+        && request.resource.data.follower == request.auth.uid
+        && request.resource.data.followed is string
+        && request.resource.data.followed != request.auth.uid
+        && followId == request.auth.uid + '_' + request.resource.data.followed
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/users/$(request.resource.data.followed));
+
+      allow delete: if signedIn() && resource.data.follower == request.auth.uid;
+      allow update: if false;
+    }
+
+    // ---------- Chat 1 a 1 ----------
+    // chats/{uidA}_{uidB} (uids ordenados). Solo sus dos integrantes pueden leerlo y escribir.
+    // Para iniciar una conversación se respeta la configuración “quién puede escribirme” del otro;
+    // para “amigos y amigos de amigos” hay que indicar en `via` un amigo en común.
+    function canStartChat(me, other, via) {
+      let setting = get(/databases/$(database)/documents/users/$(other)).data.get('settings', {}).get('messages', 'everyone');
+      return setting == 'everyone'
+        || (setting in ['friends', 'fof'] && friends(me, other))
+        || (setting == 'fof' && via != null && friends(me, via) && friends(via, other));
+    }
+
+    match /chats/{chatId} {
+      allow read: if signedIn() && (resource == null || request.auth.uid in resource.data.members);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['members', 'via', 'createdAt', 'updatedAt', 'lastText', 'lastSender'])
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && request.resource.data.members[0] < request.resource.data.members[1]
+        && chatId == request.resource.data.members[0] + '_' + request.resource.data.members[1]
+        && request.auth.uid in request.resource.data.members
+        && request.resource.data.lastSender == request.auth.uid
+        && request.resource.data.lastText is string && request.resource.data.lastText.size() <= 140
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && canStartChat(
+          request.auth.uid,
+          request.resource.data.members[0] == request.auth.uid ? request.resource.data.members[1] : request.resource.data.members[0],
+          request.resource.data.get('via', null)
+        );
+
+      allow update: if signedIn()
+        && request.auth.uid in resource.data.members
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt', 'lastText', 'lastSender'])
+        && request.resource.data.lastSender == request.auth.uid
+        && request.resource.data.lastText is string && request.resource.data.lastText.size() <= 140
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if signedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
+
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly(['sender', 'text', 'createdAt'])
+          && request.resource.data.sender == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 1000
+          && request.resource.data.createdAt == request.time
+          && request.auth.uid in getAfter(/databases/$(database)/documents/chats/$(chatId)).data.members;
+
+        allow update, delete: if false;
+      }
     }
   }
 }
