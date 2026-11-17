@@ -168,7 +168,7 @@ export default function GameDetail() {
       <div className="container">
         <section className="score-panel" aria-label="Puntuaciones">
           <div className="score-panel__item">
-            <h2 className="score-panel__title">Metacritic <span>vía RAWG</span></h2>
+            <h2 className="score-panel__title">Metacritic</h2>
             <MetacriticScore score={g.metacritic} platform={mainPlatform} size="lg" showLabel={false} />
             {g.metacritic == null ? (
               <p className="muted">RAWG no informa una puntuación de Metacritic para este juego.</p>

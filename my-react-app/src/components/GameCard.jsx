@@ -17,7 +17,8 @@ export function PlatformList({ platforms = [], max = 3 }) {
   )
 }
 
-export default function GameCard({ game, eager = false, tour }) {
+// hideEmptyCommunity: en el inicio no se muestra “Comunidad · Sin votos” (solo cuando hay votos).
+export default function GameCard({ game, eager = false, tour, hideEmptyCommunity = false }) {
   const stats = useCommunityStats(game.id)
   const year = game.tba ? 'Por anunciar' : releaseYear(game.released) || 'Sin fecha'
 
@@ -36,12 +37,14 @@ export default function GameCard({ game, eager = false, tour }) {
           </p>
           <div className="game-card__scores">
             <MetacriticScore score={game.metacritic} size="sm" />
-            <CommunityScore
-              stats={stats.data}
-              loading={stats.isLoading}
-              unavailable={!firebaseReady || stats.isError}
-              size="sm"
-            />
+            {(!hideEmptyCommunity || stats.data?.votes > 0) && (
+              <CommunityScore
+                stats={stats.data}
+                loading={stats.isLoading}
+                unavailable={!firebaseReady || stats.isError}
+                size="sm"
+              />
+            )}
           </div>
         </div>
       </Link>

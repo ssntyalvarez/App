@@ -65,6 +65,11 @@ test.describe('catálogo (RAWG simulado con juegos ficticios)', () => {
     await mockRawg(page)
     await page.goto('/')
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Juego de prueba')
+    // El inicio solo muestra juegos con nota de Metacritic, y la Comunidad solo si tiene votos.
+    await expect(page.locator('.game-card').first()).toBeVisible()
+    await expect(page.locator('main')).not.toContainText('Sin nota')
+    await expect(page.locator('main')).not.toContainText('Sin votos')
+    await expect(page.locator('main')).not.toContainText('vía RAWG')
     await page.getByRole('link', { name: 'Catálogo' }).first().click()
     await expect(page).toHaveURL(/\/juegos$/)
     await expect(page.getByRole('heading', { name: 'Explorá juegos' })).toBeVisible()
