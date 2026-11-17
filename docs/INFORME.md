@@ -9,7 +9,7 @@
 | Repositorio | https://github.com/ssntyalvarez/App |
 | Bitácora del proceso | [docs/BITACORA.md](BITACORA.md) |
 
-![Checkpoint, inicio](evidencias/final/inicio-desktop.jpg)
+![Checkpoint, inicio](evidencias/final/inicio-desktop-pantalla.jpg)
 
 ## 1. Idea y público
 
@@ -75,17 +75,23 @@ Se usan **Firebase Authentication** (correo y contraseña) y **Cloud Firestore**
 
 **Elaboración propia a partir del trabajo con IA:** la idea, el alcance y las decisiones de diseño fueron del autor. La interfaz no quedó en la primera propuesta de la IA: pasó por cinco versiones, y cada una se revisó en la versión publicada. Así se quitaron elementos genéricos (tarjetas, píldoras, tipografía monoespaciada), se reordenó la jerarquía del perfil y se cambió el modelo de la biblioteca. El detalle, con capturas de antes y después, está en la [bitácora](BITACORA.md).
 
-## 6. Dificultades principales y cómo se resolvieron
+## 6. Dificultades técnicas y cómo se resolvieron
 
-| Dificultad | Cómo se investigó y resolvió |
-| --- | --- |
-| La clave de RAWG no puede quedar en el navegador | Función de servidor en Vercel con lista blanca de consultas; la clave vive solo en el servidor. |
-| Las pruebas de reglas fallaban (`firestore is not a function`) | `npm ls` mostró dos versiones de Firebase instaladas; se fijó una sola. |
-| El promedio funcionaba en el emulador pero no en Firebase real | El error pedía un índice compuesto; se declaró el índice y se agregó un cálculo alternativo. |
-| RAWG caído o lento dejaba la app cargando sin fin | Tiempo límite de 10 s y mensaje claro con opción de reintentar. |
-| Vercel mostraba la plantilla vieja | La app estaba en otra rama; se fusionó en `main` y desde ahí se publica sola en cada cambio. |
-| Seguidores en “…” en la versión publicada | Las reglas publicadas eran viejas: desplegar en Vercel no actualiza las reglas de Firebase, hay que publicarlas aparte. |
-| Bordes blancos en las imágenes de personajes | Se reemplazó el recorte por color por un modelo de segmentación (rembg). |
+Cada caso indica el síntoma o error observado, la causa encontrada y la solución aplicada en el código.
+
+| Síntoma o error | Causa técnica | Solución |
+| --- | --- | --- |
+| Pruebas de reglas: `TypeError: this.getApp(...).firestore is not a function` | `npm ls @firebase/app` mostró dos copias (0.16.2 y 0.16.3): `@firebase/rules-unit-testing` registraba Firestore en una instancia de `FirebaseApp` distinta. | `firebase` fijado en `^12` (versión que exige `rules-unit-testing`) y `overrides` de `@firebase/app` en `package.json` para deduplicar el paquete. |
+| En Firebase real: `FAILED_PRECONDITION: The query requires an index` (en el emulador funcionaba) | La agregación `average('score')` con `where('gameId', '==', …)` necesita un índice compuesto, y el emulador no valida índices. | Índice declarado en `firestore.indexes.json` y alternativa en `getCommunityStats` (`src/lib/reviews.js`): si la agregación falla, calcula el promedio con `statsFromReviews(listGameReviews())`. |
+| Con RAWG caído (Cloudflare 522) la ficha quedaba cargando sin fin | `fetch` en el servidor no tiene tiempo límite, y React Query reintentaba una solicitud que nunca respondía. | `AbortSignal.timeout(10000)` en `server/rawg.js`; ante el corte devuelve `504` con `code: 'upstream_timeout'`. En `main.jsx`, React Query no reintenta ese código y la interfaz muestra el error con botón “Reintentar”. |
+| Imágenes de RAWG en 404 | El CDN de RAWG solo acepta ciertos anchos en `/media/resize/{w}/-/`; 960 no existe. | `rawgImage()` (`src/lib/format.js`) elige el menor ancho válido de `RAWG_WIDTHS = [420, 640, 1280, 1920]`; si aun así falla, `onError` en `GameImage` vuelve a la URL original. |
+| Proteger `RAWG_API_KEY` sin abrir un proxy | Cualquier ruta del tipo `/api/rawg?url=…` permitiría usar la clave para cualquier consulta. | Función `GET` en `api/rawg.js` con lista blanca de recursos (`games`, `game`, `screenshots`, `genres`, `platforms`) y de parámetros, recorte de campos y `Cache-Control: s-maxage`. La clave solo se lee con `process.env` en el servidor. |
+| Vercel desplegaba una función de más | Vercel publica como función cada archivo dentro de `api/`, incluido el módulo auxiliar `api/_lib/rawg.js`. | Lógica movida a `server/rawg.js`; `api/rawg.js` solo la importa. `vite.config.js` monta el mismo módulo como middleware en desarrollo. |
+| El panel Social medía 68 px de alto en lugar de ocupar la pantalla | El `backdrop-filter` del encabezado crea un *containing block* para los descendientes con `position: fixed`, así que el panel se medía contra el header. | El panel y el chat se renderizan con `createPortal(…, document.body)`. Además, el panel solo se monta abierto: cerrado y fuera de pantalla ensanchaba la página en celular. |
+| Al limpiar un filtro, el valor anterior reaparecía | Dentro de una transición de React Router, `useSearchParams` devolvía parámetros desactualizados al armar la nueva URL. | Los parámetros se construyen desde `window.location.search` en el momento del evento. |
+| Tras registrarse no aparecía el tutorial | El estado se leía de `localStorage` antes de que `markTourPending` lo escribiera, y `useState` no se volvía a enterar. | Estado expuesto con `useSyncExternalStore` y un evento propio que se emite al escribir. |
+| Seguidores en “…” solo en la versión publicada | La API de Firestore devolvía `PERMISSION_DENIED`: las reglas publicadas eran anteriores a `follows` y desplegar en Vercel no las actualiza. | Reglas publicadas con `firebase deploy --only firestore:rules`; la interfaz muestra “—” cuando la consulta falla. |
+| El chat tapaba el menú de cuenta | `z-index` 55 del contenedor del chat, por encima del header (40). | Contenedor del chat en `z-index: 35`. |
 
 ## 7. Verificación
 

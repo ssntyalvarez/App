@@ -146,7 +146,7 @@ La primera versión del perfil tenía demasiado ruido: tarjetas para cada dato y
 
 | Inicio | Registro | Perfil | Ficha |
 | --- | --- | --- | --- |
-| ![](evidencias/final/inicio-mobile.jpg) | ![](evidencias/final/registro-mobile.jpg) | ![](evidencias/final/perfil-mobile.jpg) | ![](evidencias/final/ficha-mobile.jpg) |
+| ![](evidencias/final/inicio-mobile-pantalla.jpg) | ![](evidencias/final/registro-mobile-pantalla.jpg) | ![](evidencias/final/perfil-mobile-pantalla.jpg) | ![](evidencias/final/ficha-mobile-pantalla.jpg) |
 
 ### Pruebas de la versión final
 | Prueba | Resultado |
