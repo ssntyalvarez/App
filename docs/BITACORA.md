@@ -182,6 +182,25 @@ La primera versión del perfil tenía demasiado ruido: tarjetas para cada dato y
 - *Modelo de datos:* “Si agregás un juego, lo ponés en tu biblioteca como favorito, no hace falta poner completado o no. Si hacés una opinión… como hace Steam: tiempo de juego, una puntuación y una descripción.”
 - *Jerarquía visual:* “No me gustan muchas cosas de acá. Jerarquía no clara, hay mucho ruido en el nivel… no TODO se resuelve con cards… mirá cómo lo resuelven Twitter, Twitch, Instagram, que es MUY LIMPIO.”
 
+**Instrucciones resumidas en lenguaje técnico y de diseño**
+
+Versiones abreviadas de instrucciones reales dadas durante el proyecto. Se reformularon para que sean breves y precisas, así que no son citas textuales.
+
+| Área | Instrucción (resumida) |
+| --- | --- |
+| API | Proxy serverless en `api/rawg.js`: lista blanca de recursos y parámetros, `RAWG_API_KEY` solo en `process.env`, caché con `s-maxage`. |
+| Seguridad | Reglas de Firestore: lectura pública de reseñas; escritura solo si `request.auth.uid` es el autor; validar `score` entero 0–10, largo de `text` y campos con `hasOnly`. |
+| Modelo de datos | Reseña estilo Steam: `playtimeHours` + `score` + `text`. Biblioteca = favoritos, sin estados. |
+| Identidad | Alias único estilo Instagram: prefijo `@`, solo `[a-z0-9._]`, unicidad con la colección `handles` y un cambio cada 7 días, validado en reglas. |
+| Navegación | Header según la sesión: sin sesión, *Ingresar* / *Crear cuenta*; con sesión, menú de cuenta. Footer con todas las rutas. |
+| Despliegue | Despliegue continuo: cada cambio entra a `main` por pull request y Vercel hace el build automáticamente. |
+| Depuración | Reproducir el fallo del chat con dos clientes concurrentes, encontrar la causa raíz y agregar una prueba e2e de regresión. |
+| Jerarquía visual | Perfil: bajar el ruido; nivel solo como número con tooltip al pasar el mouse; métricas en una línea, no en cards. Referentes: Twitter, Instagram, Twitch. |
+| Estética | Evitar la estética genérica de IA: sin pills decorativas, sin tipografía monoespaciada, sin cards por defecto. |
+| Composición | Hero de acceso: recortes limpios (sin halo), escala y encuadre consistentes entre personajes, sin cortes arbitrarios. |
+| Contenido | Inicio solo con juegos que tengan nota de Metacritic; ocultar estados vacíos (“Sin votos”) en la vitrina. |
+| Interacción | Chat como los susurros de Twitch: ventanas flotantes, apilables y minimizables, sin salir de la página. |
+
 **Revisión del código generado:** ningún cambio se publicó sin pasar lint, build y las pruebas automáticas. Varios errores reales los encontraron esas pruebas o las capturas, no la IA al escribir el código: el filtro que reaparecía, el índice de Firestore, el panel de 68 px, el chat tapando el menú y los mensajes que no llegaban.
 
 ---
