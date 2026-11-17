@@ -26,7 +26,7 @@ export function Conversation({ me, other, chat, compact = false }) {
   const notify = useToast()
   const [messages, setMessages] = useState({ id: null, list: [] })
   const [text, setText] = useState('')
-  const [sending, setSending] = useState(false)
+  const [pending, setPending] = useState(0)
   const [blocked, setBlocked] = useState(null)
   const endRef = useRef(null)
   const id = chatId(me, other.uid)
@@ -45,28 +45,42 @@ export function Conversation({ me, other, chat, compact = false }) {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [list.length])
 
-  const onSubmit = async (e) => {
+  // Los envíos se encolan: cada mensaje sale en orden y ninguno se descarta por escribir rápido
+  // mientras el anterior todavía viaja al servidor.
+  const queue = useRef(Promise.resolve())
+  const started = useRef(Boolean(chat))
+  useEffect(() => {
+    if (chat) started.current = true
+  }, [chat])
+
+  const onSubmit = (e) => {
     e.preventDefault()
     const clean = text.trim()
-    if (!clean || sending) return
-    setSending(true)
-    try {
-      let via
-      if (!chat) {
-        const check = await canMessage(me, other.uid, other)
-        if (!check.allowed) {
-          setBlocked(`${other.displayName} no recibe mensajes de personas que no son sus amigos.`)
-          return
+    if (!clean || blocked) return
+    setText('')
+    setPending((n) => n + 1)
+    queue.current = queue.current.then(async () => {
+      try {
+        let via
+        const existing = started.current
+        if (!existing) {
+          const check = await canMessage(me, other.uid, other)
+          if (!check.allowed) {
+            setBlocked(`${other.displayName} no recibe mensajes de personas que no son sus amigos.`)
+            return
+          }
+          via = check.via
         }
-        via = check.via
+        await sendMessage({ me, other: other.uid, text: clean, existing, via })
+        started.current = true
+      } catch (err) {
+        // El texto vuelve al cuadro para no perderlo.
+        setText((t) => (t ? t : clean))
+        notify(firestoreMessage(err, 'No se pudo enviar el mensaje.'), 'error')
+      } finally {
+        setPending((n) => n - 1)
       }
-      await sendMessage({ me, other: other.uid, text: clean, existing: Boolean(chat), via })
-      setText('')
-    } catch (err) {
-      notify(firestoreMessage(err, 'No se pudo enviar el mensaje.'), 'error')
-    } finally {
-      setSending(false)
-    }
+    })
   }
 
   // Separador de día: se marca el primer mensaje de cada fecha.
@@ -119,9 +133,10 @@ export function Conversation({ me, other, chat, compact = false }) {
               if (e.key === 'Enter' && !e.shiftKey) onSubmit(e)
             }}
           />
-          <button type="submit" className="btn btn--primary" disabled={sending || !text.trim()}>
-            {sending ? 'Enviando…' : 'Enviar'}
+          <button type="submit" className="btn btn--primary" disabled={!text.trim()} aria-describedby={pending ? `chat-pending-${other.uid}` : undefined}>
+            Enviar
           </button>
+          {pending > 0 && <span id={`chat-pending-${other.uid}`} className="sr-only">Enviando…</span>}
         </form>
       )}
     </section>
