@@ -1,259 +1,194 @@
 # Bitácora de Checkpoint
 
-Registro del desarrollo por iteraciones: qué cambió, cómo se verificó y qué dificultades aparecieron.
-Las capturas de `docs/evidencias/` las genera la prueba `e2e/evidencias.spec.js` contra los **emuladores de Firebase** y un **doble de prueba de RAWG con juegos ficticios** (“Juego de prueba …”, imágenes rotuladas “IMAGEN DE PRUEBA”). No son datos reales de RAWG ni de Metacritic: se usan porque durante el desarrollo no había una clave de RAWG ni un proyecto de Firebase configurados.
+**TP2 · Desarrollo Frontend II** — Aplicación en React con IA, Firebase y despliegue en Vercel.
 
-## Idea y público
+| | |
+| --- | --- |
+| Aplicación publicada | https://app-theta-ten-t7mx3z64op.vercel.app/ |
+| Repositorio | https://github.com/ssntyalvarez/App |
+| Informe | [docs/INFORME.md](INFORME.md) |
 
-- **Necesidad:** decidir qué jugar comparando la crítica (Metacritic) con la opinión de otros jugadores, y llevar registro de lo que uno juega.
-- **Público:** jugadores que buscan recomendaciones y quieren una página personal para compartir sus gustos.
-- **Datos en Firebase:** perfiles públicos (`users`), alias únicos (`handles`), opiniones (`reviews`) y, desde la iteración 2, bibliotecas personales.
-- **Datos externos:** catálogo, imágenes y notas de Metacritic de RAWG, consultados a demanda mediante una función de servidor.
+Esta bitácora registra solo los **cambios grandes** entre versiones, con capturas de antes y después, cómo se probó cada versión, cómo se usó la IA y qué dificultades aparecieron. El detalle commit a commit queda en el historial de Git y en los pull requests del repositorio.
+
+> **Sobre las capturas.** Las versiones 1 y 2 se fotografiaron con un catálogo de prueba (“Juego de prueba…”, “IMAGEN DE PRUEBA”) porque todavía no había clave de RAWG. Desde la versión 3, el catálogo es el real de RAWG. Las cuentas, reseñas y chats que aparecen en las capturas finales son **cuentas de prueba** creadas en el emulador local de Firebase, no usuarios reales.
 
 ---
 
-## Iteración 1 — Primera versión funcional
+## Resumen de versiones
 
-**Fecha:** 20/10/2026 · **Commits:** `d7cbc87` (primer avance visible) y el cierre de la iteración 1.
-
-### Cambios
-- Se reemplazó la pantalla de ejemplo de la plantilla (`MiPrimerComponente`, `App.css` y sus imágenes) por la estructura de Checkpoint: rutas con React Router, caché de consultas con React Query y fuentes autoalojadas (Bricolage Grotesque, Geist y Geist Mono).
-- **Proxy de RAWG** (`api/rawg.js` + `api/_lib/rawg.js`): función de Vercel con lista blanca de recursos y parámetros, recorte de campos (descarta la nota de usuarios de RAWG para no confundirla con la comunidad), caché en memoria y `Cache-Control` para el CDN. El mismo código atiende `/api/rawg` en `npm run dev`.
-- **Catálogo:** búsqueda con demora de 450 ms, filtros (género, plataforma, año), orden (relevancia, Metacritic, lanzamiento) y “Cargar más”. Los filtros viven en la URL, así que se pueden compartir.
-- **Ficha:** imagen protagonista, panel con tres puntuaciones separadas (Metacritic con su plataforma, Comunidad Checkpoint con distribución de votos, nota personal), descripción, capturas con visor accesible y ficha técnica.
-- **Cuentas y opiniones:** registro, ingreso y cierre de sesión con Firebase Auth; opiniones en `reviews/{gameId}_{uid}` (una por usuario y juego); crear, editar y eliminar; 0 es una puntuación válida; promedio calculado a partir de las opiniones reales.
-- **Reglas de Firestore:** lectura pública de reseñas y perfiles; escritura solo del dueño; validación de puntuación entera 0–10, comentario ≤ 2000 caracteres y lista cerrada de campos; correo nunca guardado en Firestore.
-- **Estados:** carga (esqueletos y spinners), vacío, error con reintento y “pendiente de conexión” cuando falta RAWG o Firebase.
-
-### Pruebas realizadas
-| Prueba | Resultado |
-| --- | --- |
-| `npm run lint` | Sin errores ni advertencias |
-| `npm run build` | Correcto (aviso de chunk > 500 kB, a resolver en la iteración 3) |
-| `npm test` — 15 pruebas del proxy (parámetros rechazados, clave ausente, la clave no se filtra, errores de RAWG) | 15/15 |
-| `npm run test:rules` — 16 pruebas de reglas en el emulador (incluye “otro usuario no puede editar ni borrar”) | 16/16 |
-| `npm run test:e2e` — 11 pruebas Playwright: búsqueda con una sola consulta, filtros, cargar más, estados vacíos, navegación, crear/recargar/editar/eliminar opinión, dos usuarios y promedio 7,5, validaciones, alias único, celular | 11/11 |
-
-### Evidencias
-| Inicio | Ficha con opinión publicada | Catálogo en celular |
-| --- | --- | --- |
-| ![Inicio](evidencias/iteracion-1/01-inicio-desktop.png) | ![Ficha](evidencias/iteracion-1/04-ficha-desktop.png) | ![Catálogo celular](evidencias/iteracion-1/02-catalogo-mobile.png) |
-
-### Dificultades y soluciones
-1. **Sin clave de RAWG ni proyecto de Firebase.** Se avanzó con todo lo verificable: la app muestra “pendiente de conexión” sin inventar datos; Firebase se probó con sus emuladores locales y RAWG con un doble de prueba solo dentro de las pruebas automáticas.
-2. **Dos copias de `@firebase/app`.** `npm` instaló 0.16.2 (fijada por `firebase`) y 0.16.3 (pedida por otros paquetes). Las pruebas de reglas fallaban con `this.getApp(...).firestore is not a function`. Se diagnosticó con `npm ls @firebase/app` y se resolvió con `overrides` en `package.json` para usar una sola versión; el mismo problema habría roto Firestore en el navegador.
-3. **`firebase@13` incompatible con `@firebase/rules-unit-testing`.** La herramienta de pruebas de reglas requiere `firebase@^12`, así que se fijó la versión 12.
-4. **Filtro que “reaparecía”.** Una prueba detectó que, al elegir un filtro justo después de “Limpiar filtros”, volvía el filtro anterior: React Router procesa la navegación como transición y el manejador usaba parámetros de un render previo. Se corrigió calculando los parámetros desde `window.location` al momento del evento.
-5. **Advertencias de lint de React** (`set-state-in-effect`, `only-export-components`): se movieron utilidades a `lib/` y el estado derivado se calcula durante el render en lugar de sincronizarlo con efectos.
-
-### Uso de IA
-Se trabajó con Claude Code (asistente de programación) sobre el repositorio. Instrucciones representativas:
-- “Usá RAWG como fuente… protegé la clave en una función de servidor compatible con Vercel; limitá sus rutas y parámetros; evitá convertirla en un proxy abierto.”
-- “Mostrá Metacritic · vía RAWG y Comunidad Checkpoint… No inventes puntuaciones, usuarios, reseñas ni cantidades de votos.”
-- “Si faltan la clave de RAWG o la configuración de Firebase… no presentes datos ficticios ni almacenamiento local como servicios reales.”
-
-El código generado se verificó con lint, build y las pruebas anteriores antes de cada commit.
-
----
-
-## Iteración 2 — Mejora de funciones: perfiles y biblioteca
-
-**Fecha:** 20/10/2026 · **Commits:** `fe9727a` (avance visible) y el cierre de la iteración 2.
-
-### Cambios
-- **Biblioteca personal** (`libraries/{uid}/games/{gameId}`): agregar desde la ficha con estado *Quiero jugar*, *Jugando*, *Completado* o *Abandonado*; cambiar estado; fecha de finalización opcional (solo para completados, sin fechas futuras); quitar; favoritos.
-- **Destacados:** hasta 4 favoritos destacados en el perfil (`users.featured`). Quitar un juego o desmarcar el favorito lo saca de destacados en la misma escritura (`writeBatch`).
-- **Perfil público** `/u/<alias>`: portada, avatar, nombre, alias, biografía, botón “Compartir perfil” (copia el enlace o usa el menú de compartir del celular), estadísticas reales (completados, reseñas, promedio de sus notas, juegos en biblioteca), destacados, grilla con filtros por estado y pestaña de reseñas.
-- **Tres puntuaciones diferenciadas:** Metacritic (cuadrado 0–100), Comunidad (círculo 0–10 con votos) y nota personal (etiqueta “x/10” o “Sin puntuar”).
-- **Fuente única de la nota personal:** la biblioteca no guarda puntuación; la grilla del perfil, los destacados y la ficha leen la reseña del usuario. Marcar “Completado” no crea una puntuación (las reglas incluso rechazan un campo `score` en la biblioteca).
-- **Editar perfil:** nombre, alias (con liberación del alias anterior), biografía de 160 caracteres, avatar y portada, con vista previa.
-- **Imágenes sin facturación:** Firebase Storage requiere el plan Blaze, así que no se usó. El avatar se recorta y comprime en el navegador a 192 px (data URL de hasta 80 000 caracteres, validada por las reglas) y la portada se elige entre imágenes de RAWG (de la biblioteca o de una búsqueda).
-- **Actualización optimista** en estado y favoritos: la interfaz responde al instante y se revierte si Firestore rechaza el cambio.
-
-### Pruebas realizadas
-| Prueba | Resultado |
-| --- | --- |
-| `npm run lint` / `npm run build` | Sin advertencias / correcto |
-| `npm test` (proxy de RAWG) | 15/15 |
-| `npm run test:rules` — se agregaron perfil personalizable (bio, avatar, portada, ≤ 4 destacados) y biblioteca (solo el dueño escribe, estados válidos, fecha coherente, sin puntuación) | 22/22 |
-| `npm run test:e2e` — se agregaron: estados + fecha + favoritos + destacados + nota sincronizada entre ficha, reseña y perfil; máximo de 4 destacados; edición de perfil con avatar subido y portada; enlace copiado; correo ausente del perfil público; visitante sin controles; perfil en celular sin desbordes | 15/15 |
-
-### Evidencias
-| Perfil (computadora) | Perfil (celular) | Editar perfil |
-| --- | --- | --- |
-| ![Perfil](evidencias/iteracion-2/06-perfil-desktop.png) | ![Perfil celular](evidencias/iteracion-2/06-perfil-mobile.png) | ![Editar perfil](evidencias/iteracion-2/05-editar-perfil-desktop.png) |
-
-| Ficha con biblioteca (celular) |
-| --- |
-| ![Ficha celular](evidencias/iteracion-2/04-ficha-mobile.png) |
-
-### Dificultades y soluciones
-1. **Radio “controlado” que no cambiaba.** La prueba de biblioteca falló con “Clicking the checkbox did not change its state”: el estado marcado dependía de la respuesta de Firestore. Se agregó actualización optimista en la caché de React Query con reversión ante error.
-2. **Formato de fechas.** La prueba esperaba “14 mar 2026”, pero `Intl` en `es-AR` produce “14 de mar de 2026”. Se ajustó la prueba al formato real.
-3. **Revisión visual de las capturas:** en celular las tarjetas de biblioteca ocupaban una columna enorme (se pasó a dos columnas); en “Editar perfil”, el campo Alias quedaba desalineado por su texto de ayuda (`align-content: start`); en la ficha en celular, la biblioteca quedaba debajo de las capturas (se subió junto a las puntuaciones).
-4. **Avatar sin Storage.** Se descartó Firebase Storage por requerir facturación y se optó por compresión en el navegador con límite validado en las reglas.
-
-### Uso de IA
-Instrucción representativa: “Diferenciá claramente la puntuación personal de la nota de Metacritic y del promedio de la comunidad… Marcar un juego como completado no debe crear una puntuación automáticamente… Evitá duplicar opiniones o generar valores contradictorios.” A partir de esto se decidió no guardar la nota en la biblioteca y derivarla siempre de la reseña.
-
----
-
-## Iteración 3 — Versión final con refinamiento visual
-
-**Fecha:** 20/10/2026 · **Commits:** `65d2ce3` (avance) y el cierre de la iteración 3.
-
-### Cambios (a partir de la revisión de las capturas renderizadas)
-- **Ficha:** la opinión propia aparecía dos veces (tarjeta “Tu opinión” y lista); ahora la lista muestra solo las demás, con un estado vacío propio (“Por ahora, la única opinión es la tuya”). El panel “Tu nota” se rediseñó con una caja de contorno blanco, distinta del cuadrado de Metacritic y del círculo de la comunidad. Se acortó el texto de votos que se cortaba en “escala 0–10”.
-- **Inicio:** en celular los carriles pasan a deslizarse en horizontal (con ajuste por tarjeta) en lugar de apilar 24 tarjetas. Si no hay un juego destacado (por ejemplo, sin clave de RAWG), se muestra una presentación de marca con la leyenda de las tres puntuaciones, sin datos inventados.
-- **Registro e ingreso en celular:** se conserva una franja con la frase de marca en lugar de ocultar todo el panel visual.
-- **Estados “sin conectar”:** se quitó la redundancia “Pendiente · …pendiente de conexión” y la ficha ofrece volver al inicio.
-- **Rendimiento:** páginas con carga diferida y bloques separados para React, Firebase y Firestore; desapareció la advertencia de paquetes > 500 kB (el bloque principal pasó de 1 012 kB a 44 kB + bibliotecas cacheables). Barra de progreso mientras se descarga una página.
-- **Accesibilidad:** título de pestaña por página, pestañas del perfil con flechas del teclado y `tabIndex` según el patrón ARIA, y auditoría automática con axe (WCAG 2.1 AA, incluye contraste).
-
-### Pruebas realizadas
-| Prueba | Resultado |
-| --- | --- |
-| `npm run lint` / `npm run build` | Sin advertencias / correcto, sin avisos de tamaño |
-| `npm test` (proxy de RAWG) | 15/15 |
-| `npm run test:rules` | 22/22 |
-| `npm run test:e2e` (incluye auditoría axe de inicio, catálogo, ficha, ingreso, registro y perfil) | 16/16 |
-| Función `api/rawg.js` ejecutada con `Request` reales: sin clave → 503 `missing_key`; recurso no permitido → 404; clave inválida contra RAWG real → 502 `bad_key` | Correcto |
-
-### Evidencias
-| Inicio sin conexión (lo que se ve sin `.env`) | Ficha final | Registro en celular |
-| --- | --- | --- |
-| ![Inicio sin conexión](evidencias/iteracion-3/00-inicio-sin-conexion-desktop.jpg) | ![Ficha](evidencias/iteracion-3/04-ficha-desktop.jpg) | ![Registro](evidencias/iteracion-3/03-registro-mobile.jpg) |
-
-| Inicio en celular | Perfil final | Perfil en celular |
-| --- | --- | --- |
-| ![Inicio celular](evidencias/iteracion-3/01-inicio-mobile.jpg) | ![Perfil](evidencias/iteracion-3/06-perfil-desktop.jpg) | ![Perfil celular](evidencias/iteracion-3/06-perfil-mobile.jpg) |
-
-### Dificultades y soluciones
-1. **Carga diferida y pruebas.** Al dividir el código, una prueba hizo clic en una tarjeta del inicio mientras se descargaba el catálogo, porque la página anterior seguía visible. Se agregó una barra de progreso de navegación (`useNavigation`) y la prueba ahora espera la nueva página.
-2. **Capturas con imágenes vacías.** Las capturas de página completa no disparaban la carga diferida (`loading="lazy"`); el script ahora recorre la página antes de capturar.
-3. **Peso de las evidencias.** Las capturas PNG de celular superaban los 10 000 px de alto; desde esta iteración se guardan como JPEG reducidas.
-
-### Justificación del diseño final
-- **Grafito + blanco cálido** dan un fondo calmo para que las imágenes de los juegos sean protagonistas; el **lima** se reserva para acciones principales, foco visible y notas altas, para que no compita con las portadas.
-- **Bricolage Grotesque condensada en mayúsculas** para títulos (carácter “de caja de juego”), **Geist** para lectura y **Geist Mono** para números, lo que hace que las notas se alineen y se comparen fácilmente.
-- **Una forma por tipo de nota** (cuadrado sólido = Metacritic 0–100, círculo = comunidad 0–10, caja de contorno = nota personal) para que se distingan aun sin leer la etiqueta; el color (lima/ámbar/coral) refuerza el rango, pero siempre hay texto.
-- **Estados honestos:** cuando falta un servicio se dice qué falta y no se rellena con datos de ejemplo.
-
-### Verificación con datos reales de RAWG
-Con la clave de RAWG configurada en el `.env` local (fuera del repositorio), se probó el proxy y la interfaz contra la API real:
-
-| Prueba | Resultado |
-| --- | --- |
-| Géneros, plataformas, búsqueda (“hollow knight” → 2 954 resultados), filtros combinados (RPG + Nintendo + 2017 → 95), orden por Metacritic, ficha de GTA V (92 general; PC 96, PS3 97, PS4 97, PS5 81…) y capturas | Correcto |
-| Recurso no permitido (`resource=users`) | 404 |
-| La clave aparece en alguna respuesta / la nota de usuarios de RAWG aparece | No / No |
-| En el navegador: escribir “celeste” letra por letra genera **una sola** consulta; Platformer → +Nintendo → +2017 → orden Metacritic (18 juegos: Super Mario Odyssey, SteamWorld Dig 2, Hollow Knight…); “Cargar más” 20 → 40; ficha con 6 capturas y título de pestaña | Correcto |
-
-Problemas que solo aparecieron con datos reales y se corrigieron:
-1. **Imágenes en 404.** RAWG solo acepta algunos anchos de redimensión (420, 640, 1280, 1920…); 960 devolvía 404 y la ficha mostraba “Sin imagen”. Se ajusta al ancho permitido más cercano y, si la versión redimensionada falla, se usa la original antes de mostrar el estado vacío (prueba unitaria agregada).
-2. **Carril vacío.** RAWG casi no tiene notas de Metacritic posteriores a 2023, así que “Mejor puntuados del último año” quedaba vacío; pasó a “Mejor puntuados de la última década”. En el catálogo, si se ordena por Metacritic y no hay resultados, se explica esta limitación.
-3. **Destacado sin nota.** El inicio ahora prefiere un juego con imagen y nota de Metacritic.
-4. **Textos cortados** (“Sin puntua…”, “Pendiente …”, “Puntuación M…”): etiquetas más cortas (“Sin nota”, “Sin conexión”, “Nota Metacritic”) y columna de orden más ancha. La ficha rotula “Nota general · por plataforma” cuando hay varias.
-
-| Inicio con RAWG real | Catálogo (RPG por Metacritic) | Ficha con notas por plataforma | Inicio en celular |
+| Versión | Fecha | Qué cambió | Dónde |
 | --- | --- | --- | --- |
-| ![Inicio real](evidencias/iteracion-3/07-rawg-real-inicio-desktop.jpg) | ![Catálogo real](evidencias/iteracion-3/08-rawg-real-catalogo-desktop.jpg) | ![Ficha real](evidencias/iteracion-3/09-rawg-real-ficha-desktop.jpg) | ![Inicio celular real](evidencias/iteracion-3/10-rawg-real-inicio-mobile.jpg) |
-
-Imágenes, títulos y notas de Metacritic de estas capturas: datos de [RAWG](https://rawg.io).
-
-### Preparación para Vercel
-- Se confirmó en la documentación de Vercel que, para proyectos que no son Next.js, cada archivo de `api/` se publica como función y que la firma `export function GET(request)` con `"type": "module"` es la correcta.
-- Por eso la lógica del proxy se movió de `api/_lib/rawg.js` a `server/rawg.js`: así `api/` contiene solo la función `api/rawg.js` y no depende de que Vercel ignore subcarpetas con guion bajo. Se volvió a probar la función con y sin clave (503 / 200 con datos reales).
-- `main` todavía tiene la plantilla original; Checkpoint está en la rama `claude/wizardly-lovelace-f9qift`. Para producción hay que fusionarla en `main` (o elegirla como rama de producción en Vercel).
-
-### Verificación con el proyecto real de Firebase (`mi-app-681e0`)
-Con la configuración web del proyecto en el `.env` local se ejecutó un script con el SDK real (dos cuentas temporales, eliminadas al final junto con sus datos):
-
-| Prueba | Resultado |
-| --- | --- |
-| Registro con correo y contraseña / registro anónimo | Habilitado / rechazado (`ADMIN_ONLY_OPERATION`) |
-| Crear opinión con nota 0, consultarla desde otra cuenta, editarla, recargar (sesión nueva) y eliminarla | Correcto |
-| Promedio con dos votos (9 y 6) | 7,5 |
-| Otra cuenta edita, borra o publica a nombre ajeno; nota 11; correo en el perfil; puntuación en la biblioteca; modificar biblioteca ajena | Todo denegado por las reglas publicadas |
-| Biblioteca: agregar como completado con fecha y eliminar | Correcto |
-| App en el navegador con el proyecto real: inicio, tarjetas con “Sin votos”, ficha con invitación a opinar, formulario de registro | Correcto, sin avisos de “sin conectar” |
-
-Dificultades:
-1. **Índice compuesto que el emulador no exige.** `average('score')` filtrado por `gameId` falló en el proyecto real con `FAILED_PRECONDITION: The query requires an index`. El emulador no valida índices, por eso no apareció antes. Se declaró el índice en `firestore.indexes.json` y la app calcula el promedio leyendo las opiniones mientras el índice no exista.
-2. **Dato de prueba huérfano.** El primer intento del script se cortó en ese error y borró las cuentas temporales antes que sus documentos: quedó la reseña `reviews/999999001_OhZjzJ…` (“temporal”, nota 0), que las reglas ya no permiten borrar a nadie salvo desde la consola. Se corrigió el script para borrar primero los documentos y se pidió eliminarla desde la consola de Firebase.
-
-### Ajuste de navegación pedido después de la iteración 3
-- **Arriba a la derecha:** sin sesión, “Ingresar” y “Crear cuenta” se ven siempre, también en celular (antes quedaban dentro del menú desplegable y desaparecían si faltaba Firebase). Con sesión, el botón **Mi cuenta** abre un menú con nombre, alias, Mi perfil, Mi biblioteca, Mis reseñas, Editar perfil y Cerrar sesión.
-- **Footer:** columnas “Explorar” (Inicio, Catálogo, Mejor puntuados, Lanzamientos recientes) y “Mi cuenta” con las mismas opciones del encabezado según haya sesión o no.
-- Pruebas: 3 nuevas de punta a punta (sin sesión, con sesión y en celular sin desborde horizontal); total 19/19.
-
-### Pantallas de acceso con personajes
-- **Ingresar** (“¡Hola de nuevo!”): escenario oscuro y frío con un protagonista que cambia en cada visita (Snake, Leon, Kratos o Link) y su nombre y juego al pie.
-- **Crear cuenta** (“Creá tu cuenta”): lados invertidos, tarjeta destacada con borde lima y un “reparto” con Leon, Snake, Kratos, Link y Batman. Queda preparado el lugar para Sam Fisher (`public/personajes/fisher.webp`).
-- Imágenes elegidas por el autor del proyecto; se les quitó el fondo (Snake y Link tenían fondo claro) y se convirtieron a WebP (≈280 KB en total).
-- Dificultad: en celular el reparto no se veía porque el contenedor flexible tenía altura cero (los personajes están posicionados de forma absoluta); se resolvió con `flex: none` y altura fija.
-- Prueba nueva: títulos distintos y carga real de las imágenes; total 20/20, incluida la auditoría de accesibilidad.
-
-### Segunda vuelta de las pantallas de acceso y alias
-- **Composición:** todos los personajes se apoyan en el borde inferior, que los corta a la misma altura (antes Leon mostraba los pies y los demás no). Batman salió del póster, donde quedaba como un rectángulo cortado, y pasó a la rotación de Ingresar.
-- **Imágenes:** Leon nuevo de RE4 (2023), sin la firma del autor ni los huecos blancos entre el brazo y la escopeta; a Kratos se le quitó un fragmento de otra imagen que había en la esquina.
-- **Menos “estética de IA”:** se quitaron la píldora “Es gratis · menos de un minuto”, el rótulo pequeño sobre el título y el borde lima de la tarjeta.
-- **Alias como Instagram:** “@” fija adelante; solo letras, números, guion bajo y punto, de 3 a 30 caracteres, sin punto al inicio, al final ni dos seguidos. La regla está en la app y en `firestore.rules`.
-- Pruebas: 30 unitarias (incluye 13 de alias), 23 de reglas (incluye alias con puntos) y 20 de punta a punta.
-
-### Recortes con IA de segmentación y ajustes de formularios
-- **Mejor recorte:** el método por color (relleno desde las esquinas) dejaba un halo blanco alrededor de Snake y Leon. Se pasó a **rembg** con el modelo `isnet-general-use` y *alpha matting*, que detecta la silueta y suaviza el borde. Así se reprocesaron Snake, Leon y Link.
-- **Pie de cada personaje con su juego exacto:** Big Boss · Metal Gear Solid: Peace Walker; Leon · Resident Evil 4 (2023); Kratos · God of War (2018); Link · Breath of the Wild; Batman · Arkham City.
-- **Contraseñas con “ojito”** para mostrar u ocultar lo escrito (ingreso y registro).
-- **“@” del alias** alineada con el texto del campo.
-- **Nombre del perfil** tal como lo escribió la persona: antes se forzaba a mayúsculas por estilo.
-- **Cambiar la foto desde el perfil:** al pasar el mouse (o enfocar con el teclado) sobre el avatar propio aparece “Cambiar foto”. En pantallas táctiles se muestra un botón pequeño fijo.
-- Pruebas: 21/21 de punta a punta (nuevas: ojito, cambio de foto y nombre sin mayúsculas forzadas).
-
-### Biblioteca de favoritos y opiniones estilo Steam
-A pedido del autor se simplificó el modelo:
-- **Biblioteca = juegos favoritos.** Se agregan con un botón (corazón) desde la ficha o desde **Editar perfil → Tus juegos favoritos**, que incluye un buscador del catálogo. Se quitaron los estados (Quiero jugar, Jugando, Completado, Abandonado) y la fecha de finalización. Se mantienen los hasta 4 destacados.
-- **Opinión estilo Steam:** horas jugadas (obligatorio, entero), puntuación 0–10 y reseña escrita (10–2000 caracteres). Cada reseña muestra “X h jugadas”. En el perfil, “Completados” pasó a **Horas jugadas** (suma de las horas de sus reseñas).
-- **Alias:** después de cambiarlo hay que esperar una semana para volver a cambiarlo (`handleChangedAt`, controlado también por las reglas).
-- **Editar perfil:** sin “Imagen de portada”; la foto se cambia pasando el mouse sobre el avatar de la vista previa.
-- Reglas reescritas para el nuevo formato (reseñas con `playtimeHours`, biblioteca sin estados, espera del alias). Pruebas: 25 de reglas, 30 unitarias y 21 de punta a punta.
-
-### Tutorial de primeros pasos y selector de año
-- **Tutorial:** al crear la cuenta aparece una ventana por tarea (personalizar perfil, agregar favoritos, opinar), con “Ir a hacerlo”, “Omitir” y “Omitir el tutorial”. “Ir a hacerlo” lleva a la pantalla y marca dónde tocar con un borde lima que late y un cartel “Tocá acá”. Al completar la tarea con datos reales se avisa y se pasa a la siguiente.
-- **Lista de tareas:** si se omite, la lista “Primeros pasos” (con progreso real) queda en el Inicio y en el perfil propio hasta completar todo. Sin sesión, propone crear cuenta o ingresar. El estado del tutorial es una preferencia de interfaz y se guarda en el navegador; el progreso se calcula con los datos de Firestore.
-- **Año:** el desplegable de 50 años pasó a un selector en dos pasos (década → año), con opción de filtrar la década completa.
-- Pruebas: 23/23 de punta a punta (nuevas: tutorial completo y filtro por década).
-
-### Parte social, configuración y niveles
-- **Seguir y amigos:** `follows/{seguidor}_{seguido}`; dos personas que se siguen mutuamente son amigas. Pestaña **Amigos** en el perfil (amigos, seguidores, seguidos) y, en el propio, **Amigos de amigos** ordenados por amigos en común.
-- **Chat 1 a 1 en tiempo real** (`/mensajes`) con `onSnapshot`. Las reglas solo dejan leer y escribir a los dos integrantes y respetan “quién puede escribirme” al iniciar una conversación. Para “amigos de amigos”, el cliente indica un amigo en común (`via`) y las reglas comprueban las cuatro relaciones de seguimiento.
-- **Configuración** (engranaje en el perfil; reemplaza “Editar perfil”): Perfil, Privacidad (mensajes, mostrar seguidores/horas) y Cuenta (correo privado, cambio de contraseña con reautenticación, cerrar sesión). Las cuentas son siempre públicas.
-- **Niveles y XP:** se calculan a partir de las reseñas reales (100 XP por reseña, +50 si tiene 200 caracteres o más). Seis rangos con color propio, de gris (Novato) a dorado con brillo (Leyenda). Se ven en el perfil y junto al nombre en reseñas y listas.
-- Pruebas: 32 de reglas (7 sociales nuevas, incluida “amigos de amigos”), 33 unitarias (niveles) y 25 de punta a punta (seguir, chat entre dos navegadores, solo amigos, niveles).
-
-### Panel Social, buscador de personas y niveles estilo Steam
-- **Panel Social** (botón en el encabezado, se abre desde la derecha): tus amigos con acceso al chat y al perfil, y un buscador que filtra amigos mientras escribís. “Buscar” lleva a **/personas**, que busca en toda la comunidad por comienzo del alias o del nombre (sin texto, muestra las cuentas más nuevas). “Mensajes” salió del menú de la cuenta.
-- **Contadores en el perfil:** seguidores, seguidos y amigos debajo del nombre; cada uno abre su lista.
-- **Niveles estilo Steam:** número dentro de un círculo cuyo anillo cambia de color cada dos niveles (gris, rojo, naranja, amarillo, verde, azul, violeta, rosa, marrón y dorado con brillo).
-- **Inicio:** con sesión iniciada ya no ofrece “Crear cuenta”, sino “Ir a mi perfil”.
-- Dificultades: (1) el panel medía 68 px de alto porque el encabezado usa `backdrop-filter`, que convierte al encabezado en el contenedor de los elementos fijos; se resolvió montando el panel en `<body>` con un portal. (2) En celular, el panel cerrado (desplazado fuera de la pantalla) ensanchaba la página y el navegador la achicaba; ahora el panel solo existe mientras está abierto. (3) Una prueba buscaba el botón “Amigos” y Playwright aceptaba también “0 amigos” al comparar parte del texto; se usó coincidencia exacta.
-- Pruebas: 34 unitarias, 32 de reglas y 25 de punta a punta.
-
-### Rediseño del perfil (jerarquía y limpieza)
-A partir de la crítica del autor (“mucho ruido”, “no todo se resuelve con cards”), tomando como referencia Twitter, Instagram y Twitch:
-- **Nombre al lado de la foto**, con más aire. Debajo, una sola línea: alias en gris · N seguidores · N seguidos. Cada contador abre la lista en una ventana; se quitaron la fecha de alta y la pestaña “Amigos” del perfil.
-- **Nivel sobre el avatar:** solo el número dentro del anillo de color. Al pasar el mouse (o enfocarlo) aparece una tarjeta flotante con rango, barra y XP. El detalle completo también está en el menú “Mi cuenta”.
-- **Datos como franja tipográfica** (reseñas, promedio, horas, favoritos) en lugar de tarjetas.
-- **Acciones:** “Editar perfil” en blanco y, aparte, un engranaje en negativo para la configuración de la cuenta.
-- **Primeros pasos** reducido a una línea con progreso circular y la próxima tarea; la lista completa se despliega solo si se pide.
-- **Social:** “Amigos de amigos” pasó al panel Social, debajo de los amigos. Cada amigo tiene un botón de chat que abre una **ventana flotante** abajo a la derecha (como Twitch), que se puede minimizar, cerrar o abrir en pantalla completa. “Mensaje” en un perfil también abre la ventana flotante.
-- Se verificó contra el Firestore real que la colección `follows` devuelve “permiso denegado”: las reglas publicadas eran anteriores a la parte social (por eso los contadores quedaban en “…”). Ahora, si la consulta falla, se muestra “—” en lugar de cargar sin fin.
-- Pruebas: 34 unitarias, 32 de reglas y 25 de punta a punta.
+| 0 · Plantilla | 20/10 | Proyecto creado con Vite (“Mi primer componente!”). | commit `a5fd910` |
+| 1 · Primera versión funcional | 20/10 | Catálogo de RAWG, ficha de juego, cuentas y opiniones en Firestore, reglas de seguridad. | commits `d7cbc87`, `3d85a76` |
+| 2 · Mejora de funciones | 20/10 | Perfiles públicos, biblioteca personal, favoritos y destacados. | commits `fe9727a`, `23b9821` |
+| 3 · Refinamiento y publicación | 20/10 – 03/11 | Rediseño visual, datos reales de RAWG, proyecto real de Firebase y publicación en Vercel. | commits `65d2ce3` → `6d18c4f`, PR #2 |
+| 4 · Versión final | 03/11 | Pantallas de acceso con personajes, opiniones estilo Steam, tutorial, parte social, chat, niveles y rediseño del perfil. | PR #3 → PR #9 |
 
 ---
 
-## Configuración pendiente (al cierre de la iteración 3)
-- **Firebase:** proyecto creado y verificado. Falta crear el índice compuesto de `reviews` y borrar la reseña de prueba huérfana desde la consola.
-- **RAWG:** la clave ya funciona en desarrollo local (`.env`, no versionado); falta cargarla como `RAWG_API_KEY` en Vercel.
-- **Vercel:** importar el repositorio con Root Directory `my-react-app`, cargar las variables y desplegar (requiere autorización del responsable). Luego agregar el dominio de Vercel en *Authentication → Dominios autorizados* y repetir las pruebas sobre la URL publicada (agregar, consultar, modificar, eliminar, recargar y celular).
-- La capa de datos ya se verificó contra el proyecto real de Firebase y RAWG con datos reales; falta repetir las pruebas en la URL publicada.
+## Versión 0 · Punto de partida
+
+El repositorio arrancó con la plantilla de React + Vite. El primer paso fue preparar la base: instalar dependencias desde el lockfile, verificar `build` y `lint`, y escribir el README y la guía para la IA (`CLAUDE.md`).
+
+![De la plantilla a la versión final](evidencias/antes-despues/1-plantilla-vs-inicio.jpg)
+
+---
+
+## Versión 1 · Primera versión funcional
+
+**Idea:** una web para descubrir videojuegos que muestre **dos notas separadas** (la de Metacritic y la de la comunidad de la app) y deje que cada persona puntúe y opine.
+
+**Cambios principales**
+- **Catálogo real con RAWG:** búsqueda con demora (una sola consulta al terminar de escribir), filtros por género, plataforma y año, orden y “Cargar más”.
+- **Clave protegida:** la clave de RAWG nunca llega al navegador. Una función de servidor de Vercel (`api/rawg.js`) hace de intermediaria y solo acepta consultas permitidas.
+- **Ficha de juego** con tres notas de formas distintas: Metacritic (cuadrado, 0–100), Comunidad Checkpoint (círculo, 0–10, con cantidad de votos) y nota personal.
+- **Firebase:** registro e inicio de sesión (Authentication) y opiniones guardadas en Cloud Firestore. Se pueden crear, editar y eliminar, con una por persona y juego.
+- **Reglas de Firestore:** todos pueden leer las reseñas, pero solo el autor puede escribir la suya; se validan la nota (entero de 0 a 10), el largo del texto y los campos permitidos.
+- **Estados honestos:** si falta RAWG o Firebase, la app lo dice (“sin conectar”) y no muestra datos inventados.
+
+**Pruebas:** 15 de la función de RAWG, 16 de reglas en el emulador de Firestore (incluida “otra persona no puede editar ni borrar”) y 11 de punta a punta con Playwright: crear, recargar, editar y eliminar una opinión, y promedio entre dos usuarios.
+
+**Dificultades**
+- *Dos copias de Firebase instaladas:* las pruebas fallaban con `this.getApp(...).firestore is not a function`. Se diagnosticó con `npm ls` y se resolvió fijando una sola versión.
+- *Un filtro que “reaparecía” después de limpiarlo:* lo detectó una prueba automática. Era un problema de tiempos de la navegación y se corrigió leyendo la URL en el momento del clic.
+
+---
+
+## Versión 2 · Mejora de funciones: perfiles y biblioteca
+
+**Cambios principales**
+- **Perfil público** en `/u/alias`, con avatar, biografía, estadísticas y botón para compartir.
+- **Biblioteca personal** y **hasta 4 juegos destacados** en el perfil.
+- **Una sola fuente para la nota personal:** la biblioteca no guarda puntuación; la nota sale siempre de la reseña, así nunca hay dos valores contradictorios.
+- **Avatar sin servicios pagos:** Firebase Storage requiere el plan pago, así que la imagen se comprime en el navegador y se guarda dentro del perfil.
+
+**Pruebas:** reglas ampliadas a 22 (solo el dueño modifica su perfil y su biblioteca, nadie puede guardar el correo) y 15 pruebas de punta a punta.
+
+**Dificultad:** el estado de la biblioteca tardaba en reflejarse al tocarlo. Se agregó *actualización optimista*: la interfaz cambia al instante y se revierte si Firestore rechaza el cambio.
+
+---
+
+## Versión 3 · Refinamiento visual y publicación
+
+**Cambios de diseño**
+- Inicio con juego destacado y carriles deslizables en celular; registro con franja de marca en celular.
+- Auditoría automática de accesibilidad (WCAG 2.1 AA, incluido el contraste) en seis pantallas.
+- Carga diferida de páginas: el paquete principal bajó de 1 MB a 44 kB.
+
+**Conexión con los servicios reales**
+- **RAWG con datos reales:** búsqueda, filtros, “Cargar más” y fichas verificados contra la API.
+- **Firebase real** (proyecto `mi-app-681e0`): un script con dos cuentas temporales comprobó registro, crear/editar/eliminar, persistencia al recargar, promedio 7,5 y que las reglas rechazan editar opiniones ajenas.
+- **Vercel:** Root Directory `my-react-app`. Cada cambio que llega a `main` se publica solo.
+
+![Inicio: catálogo de prueba en la versión 1 y catálogo real en la versión final](evidencias/antes-despues/2-inicio-v1-vs-final.jpg)
+
+![Ficha de juego: versión 1 y versión final](evidencias/antes-despues/3-ficha-v1-vs-final.jpg)
+
+**Dificultades**
+- *Imágenes rotas:* RAWG solo acepta algunos anchos de imagen redimensionada (960 px daba error 404). Se usa el ancho permitido más cercano y, si falla, la imagen original.
+- *Índice de Firestore:* el promedio de la comunidad funcionaba en el emulador pero falló en el proyecto real (“The query requires an index”). Se declaró el índice y se agregó un cálculo alternativo mientras no exista.
+- *RAWG caído (error 522):* la app quedaba “cargando” para siempre. Ahora la consulta corta a los 10 segundos y muestra “RAWG tardó demasiado en responder”.
+- *Vercel no mostraba la app:* la app estaba en una rama de trabajo y `main` seguía teniendo la plantilla. Se fusionó con un pull request, y desde entonces cada cambio en `main` se publica automáticamente.
+- *Reglas desactualizadas:* cada vez que cambiaron las reglas hubo que volver a publicarlas en Firebase, porque desplegar en Vercel no las actualiza.
+
+---
+
+## Versión 4 · Versión final, guiada por la revisión del diseño
+
+Esta versión salió de revisar la app publicada con ojo crítico, pantalla por pantalla. Los criterios: menos “estética de IA”, jerarquía visual clara y referencias de productos reales (Steam, Twitter, Instagram y Twitch).
+
+### Pantallas de acceso
+- **Ingresar** (“¡Hola de nuevo!”): un personaje de videojuego que cambia en cada visita.
+- **Crear cuenta:** composición distinta, con un póster de personajes. Las imágenes se recortaron con **rembg**, una IA de segmentación, porque el recorte por color dejaba un borde blanco.
+- **Formularios:** botón para mostrar u ocultar la contraseña y alias con “@” fija y las reglas de Instagram (letras, números, guion bajo y punto).
+- **Menos “estética de IA”:** se quitaron píldoras y rótulos decorativos, y la tipografía monoespaciada (“0” tachado) que el autor consideró genérica.
+
+![Crear cuenta: versión 3 y versión final](evidencias/antes-despues/5-registro-v3-vs-final.jpg)
+
+### Opiniones y biblioteca
+- **Opiniones estilo Steam:** horas jugadas, nota de 0 a 10 y reseña escrita, las tres obligatorias.
+- **Biblioteca = juegos favoritos:** se quitaron los estados (Quiero jugar, Jugando, etc.) por resultar innecesarios. Se agregan con un corazón desde la ficha o desde la configuración.
+- **Selector de año en dos pasos** (década → año), en lugar de una lista de 50 años.
+
+### Primeros pasos
+- **Tutorial:** al crear la cuenta, una pantalla por tarea (personalizar perfil, agregar favoritos, opinar). “Ir a hacerlo” lleva al lugar y lo marca con un borde que late y un cartel “Tocá acá”.
+- Si se omite, queda un recordatorio de **una sola línea** en el inicio y en el perfil. En una primera versión ocupaba demasiado espacio y competía con la biblioteca.
+
+![Tutorial de primeros pasos](evidencias/final/tutorial-desktop.jpg)
+
+### Parte social
+- **Seguir:** si dos personas se siguen mutuamente, son amigas.
+- **Panel Social** desde el encabezado: lista de amigos con acceso al chat y al perfil, sugerencias de “amigos de amigos” y buscador de personas.
+- **Chat 1 a 1 en tiempo real** en ventanas flotantes, como en Twitch.
+- **Configuración** con tres secciones: Perfil, Privacidad (quién puede escribirte: cualquiera, amigos de amigos, solo amigos o nadie) y Cuenta (correo privado y cambio de contraseña). Las cuentas son siempre públicas.
+- **Niveles y XP:** 100 XP por cada juego opinado, +50 si la reseña es detallada. Se calculan con las reseñas reales, así que no se pueden inflar. Se muestran como en Steam: un anillo cuyo color cambia cada dos niveles, de gris a dorado.
+
+| Panel Social | Chat flotante |
+| --- | --- |
+| ![Panel Social](evidencias/final/panel-social.jpg) | ![Chat flotante](evidencias/final/chat-flotante.jpg) |
+
+### Rediseño del perfil
+La primera versión del perfil tenía demasiado ruido: tarjetas para cada dato y un bloque de nivel con mucho texto. En la versión final:
+- El nombre va al lado de la foto, y debajo, en una línea, `@alias · seguidores · seguidos` (como Twitter). Cada contador abre su lista.
+- El nivel es solo un número sobre el avatar; el detalle con barra y XP aparece al pasar el mouse.
+- Los datos se muestran como una franja de números grandes, sin tarjetas.
+- “Editar perfil” (botón blanco) se separó de la configuración de la cuenta (engranaje).
+
+![Perfil: versión 2 y versión final](evidencias/antes-despues/4-perfil-v2-vs-final.jpg)
+
+| Nivel al pasar el mouse | Perfil de otra persona | Lista de seguidores |
+| --- | --- | --- |
+| ![Nivel](evidencias/final/perfil-nivel-hover.jpg) | ![Perfil ajeno](evidencias/final/perfil-ajeno-desktop.jpg) | ![Seguidores](evidencias/final/lista-seguidores.jpg) |
+
+![De “Editar perfil” a Configuración](evidencias/antes-despues/6-editar-perfil-vs-configuracion.jpg)
+
+### Celular
+
+| Inicio | Registro | Perfil | Ficha |
+| --- | --- | --- | --- |
+| ![](evidencias/final/inicio-mobile.jpg) | ![](evidencias/final/registro-mobile.jpg) | ![](evidencias/final/perfil-mobile.jpg) | ![](evidencias/final/ficha-mobile.jpg) |
+
+### Pruebas de la versión final
+| Prueba | Resultado |
+| --- | --- |
+| `npm run lint` / `npm run build` | Sin errores |
+| `npm test` — función de RAWG, alias, niveles | 34/34 |
+| `npm run test:rules` — reglas en el emulador (incluye seguir, chat y “amigos de amigos”) | 32/32 |
+| `npm run test:e2e` — Playwright: catálogo, opiniones, biblioteca, tutorial, seguir, chat entre dos navegadores, privacidad, niveles, accesibilidad y celular | 25/25 |
+
+### Dificultades de la versión final
+- *Panel lateral de 68 px de alto:* el encabezado usa un efecto de desenfoque (`backdrop-filter`), que hace que los elementos “fijos” se ubiquen dentro del encabezado en lugar de la pantalla. Se resolvió montando el panel directamente en la página.
+- *Página achicada en celular:* el panel cerrado, escondido fuera de la pantalla, ensanchaba la página. Ahora el panel solo existe mientras está abierto.
+- *Contadores en “…”:* en la versión publicada, las reglas eran anteriores a la parte social, así que Firestore rechazaba leer los seguidores. Se republicaron, y ahora un error se muestra como “—” en lugar de cargar sin fin.
+- *Menú tapado por el chat:* al sacar las capturas de esta bitácora apareció que la ventana de chat flotante quedaba encima del menú “Mi cuenta”. Se corrigió el orden de capas.
+
+---
+
+## Uso de inteligencia artificial
+
+**Herramienta:** Claude Code (asistente de programación de Anthropic) trabajando sobre el repositorio de GitHub. Escribió el código, ejecutó las pruebas, sacó capturas de cada pantalla para revisarlas y subió cada cambio en una rama separada, con un pull request antes de fusionar en `main`.
+
+**Cómo se trabajó**
+1. El autor definió la idea, el alcance y las decisiones de diseño, y revisó cada versión publicada.
+2. La IA implementó y verificó con pruebas automáticas (unitarias, reglas en el emulador y navegador real) antes de cada entrega.
+3. Las críticas del autor sobre el resultado se convirtieron en cambios concretos. Gran parte de la versión 4 salió de esa revisión.
+
+**Ejemplos representativos de instrucciones dadas a la IA**
+- *Definición:* “Usá RAWG como fuente de datos… Protegé la clave de RAWG en una función de servidor compatible con Vercel. Limitá sus rutas y parámetros; evitá convertirla en un proxy abierto.”
+- *Honestidad de los datos:* “No inventes puntuaciones, usuarios, reseñas ni cantidades de votos. La nota de usuarios de RAWG tampoco debe aparecer como si perteneciera a nuestra comunidad.”
+- *Diseño:* “Esto es muy IA… agrandá a Leon… arreglá Kratos, que hay como un pico arriba a la izquierda.”
+- *Modelo de datos:* “Si agregás un juego, lo ponés en tu biblioteca como favorito, no hace falta poner completado o no. Si hacés una opinión… como hace Steam: tiempo de juego, una puntuación y una descripción.”
+- *Jerarquía visual:* “No me gustan muchas cosas de acá. Jerarquía no clara, hay mucho ruido en el nivel… no TODO se resuelve con cards… mirá cómo lo resuelven Twitter, Twitch, Instagram, que es MUY LIMPIO.”
+
+**Revisión del código generado:** ningún cambio se publicó sin pasar lint, build y las pruebas automáticas. Varios errores reales los encontraron esas pruebas o las capturas, no la IA al escribir el código: el filtro que reaparecía, el índice de Firestore, el panel de 68 px y el chat tapando el menú.
+
+---
+
+## Justificación del diseño final
+
+- **Paleta:** fondo grafito y blanco cálido para que las imágenes de los juegos sean protagonistas. El verde lima se reserva para acciones principales, foco del teclado y notas altas.
+- **Tipografía:** Bricolage Grotesque condensada en mayúsculas para los títulos (aire de “caja de videojuego”) y Geist para leer. Se descartó la monoespaciada por genérica.
+- **Una forma por tipo de nota:** cuadrado para Metacritic (0–100), círculo para la comunidad (0–10) y caja con borde para la nota personal. Se distinguen sin leer la etiqueta.
+- **Jerarquía del perfil** inspirada en Twitter e Instagram: nombre e identidad primero, datos como texto y no como tarjetas, y detalles secundarios (XP, rango) disponibles al pasar el mouse en lugar de a la vista.
+- **Personajes de videojuegos** en las pantallas de acceso, para que la primera impresión sea de “sitio de jugadores” y no de formulario genérico.
+- **Estados honestos:** cuando falta un servicio se dice qué falta; nunca se completa con datos de ejemplo.

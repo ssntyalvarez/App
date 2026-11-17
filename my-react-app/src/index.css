@@ -3468,7 +3468,8 @@ fieldset {
 
 .chat-dock {
   position: fixed;
-  z-index: 55;
+  /* Debajo del encabezado (40): el menú de la cuenta queda por encima de los chats. */
+  z-index: 35;
   right: 16px;
   bottom: 0;
   display: flex;
