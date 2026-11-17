@@ -1,7 +1,8 @@
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import { useAuth } from '../context/AuthContext.jsx'
+import { getProfile } from '../lib/profiles.js'
 import { chatId } from '../lib/social.js'
 import Avatar from './Avatar.jsx'
 import { Conversation, useChats } from './Conversation.jsx'
@@ -19,7 +20,9 @@ const MAX_WINDOWS = 2
 export function ChatDockProvider({ children }) {
   const { user } = useAuth()
   const [windows, setWindows] = useState([])
-  const { chats } = useChats(windows.length ? user?.uid : null)
+  // Las conversaciones se escuchan siempre que hay sesión, para enterarse de los mensajes nuevos.
+  const { chats } = useChats(user?.uid)
+  const { pathname } = useLocation()
 
   const openChat = useCallback((profile) => {
     setWindows((list) => {
@@ -27,6 +30,32 @@ export function ChatDockProvider({ children }) {
       return [...rest, { profile, minimized: false }].slice(-MAX_WINDOWS)
     })
   }, [])
+  // Mensaje entrante: se abre (o se expande) la ventana de esa conversación. Solo cuentan los
+  // mensajes posteriores a abrir la página (o a iniciar sesión), así no se abren chats viejos.
+  const seen = useRef(null)
+  const [mountedAt] = useState(() => Date.now())
+  const onMessagesPage = pathname.startsWith('/mensajes')
+  useEffect(() => {
+    if (!chats || !user) return
+    const stamp = (c) => c.updatedAt?.toMillis?.() ?? 0
+    if (!seen.current || seen.current.uid !== user.uid) {
+      const since = seen.current ? Date.now() : mountedAt
+      seen.current = { uid: user.uid, at: new Map(chats.map((c) => [c.id, Math.min(stamp(c), since)])) }
+    }
+    const fresh = chats.filter((c) => c.lastSender && c.lastSender !== user.uid && stamp(c) > (seen.current.at.get(c.id) ?? 0))
+    chats.forEach((c) => seen.current.at.set(c.id, Math.max(stamp(c), seen.current.at.get(c.id) ?? 0)))
+    if (onMessagesPage) return
+    fresh.forEach(async (c) => {
+      const profile = await getProfile(c.lastSender).catch(() => null)
+      if (!profile) return
+      setWindows((list) => {
+        const open = list.find((w) => w.profile.uid === profile.uid)
+        if (open) return list.map((w) => (w === open ? { ...w, minimized: false } : w))
+        return [...list, { profile, minimized: false }].slice(-MAX_WINDOWS)
+      })
+    })
+  }, [chats, user, onMessagesPage, mountedAt])
+
   const close = (uid) => setWindows((list) => list.filter((w) => w.profile.uid !== uid))
   const toggle = (uid) =>
     setWindows((list) => list.map((w) => (w.profile.uid === uid ? { ...w, minimized: !w.minimized } : w)))

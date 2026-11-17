@@ -154,13 +154,14 @@ La primera versión del perfil tenía demasiado ruido: tarjetas para cada dato y
 | `npm run lint` / `npm run build` | Sin errores |
 | `npm test` — función de RAWG, alias, niveles | 34/34 |
 | `npm run test:rules` — reglas en el emulador (incluye seguir, chat y “amigos de amigos”) | 32/32 |
-| `npm run test:e2e` — Playwright: catálogo, opiniones, biblioteca, tutorial, seguir, chat entre dos navegadores, privacidad, niveles, accesibilidad y celular | 25/25 |
+| `npm run test:e2e` — Playwright: catálogo, opiniones, biblioteca, tutorial, seguir, chat entre dos navegadores, privacidad, niveles, accesibilidad y celular | 26/26 |
 
 ### Dificultades de la versión final
 - *Panel lateral de 68 px de alto:* el encabezado usa un efecto de desenfoque (`backdrop-filter`), que hace que los elementos “fijos” se ubiquen dentro del encabezado en lugar de la pantalla. Se resolvió montando el panel directamente en la página.
 - *Página achicada en celular:* el panel cerrado, escondido fuera de la pantalla, ensanchaba la página. Ahora el panel solo existe mientras está abierto.
 - *Contadores en “…”:* en la versión publicada, las reglas eran anteriores a la parte social, así que Firestore rechazaba leer los seguidores. Se republicaron, y ahora un error se muestra como “—” en lugar de cargar sin fin.
 - *Menú tapado por el chat:* al sacar las capturas de esta bitácora apareció que la ventana de chat flotante quedaba encima del menú “Mi cuenta”. Se corrigió el orden de capas.
+- *El chat no funcionaba en la demostración con el profesor:* al probarlo entre dos personas, los mensajes no llegaban o aparecía un error. Se reprodujo con dos navegadores a la vez y aparecieron tres fallas: (1) un mensaje enviado mientras el anterior seguía viajando se descartaba y se borraba lo escrito; (2) si los dos escribían el primer mensaje casi al mismo tiempo, el segundo intentaba crear de nuevo la conversación y Firestore lo rechazaba; (3) quien recibía no veía ningún aviso si no tenía ese chat abierto. Ahora los mensajes se envían en cola y en orden, el segundo envío simultáneo se reintenta como mensaje normal y, al llegar un mensaje, se abre sola la ventana de esa conversación. Se agregó una prueba automática con estos tres casos, que falla con el código anterior.
 
 ---
 
@@ -180,7 +181,7 @@ La primera versión del perfil tenía demasiado ruido: tarjetas para cada dato y
 - *Modelo de datos:* “Si agregás un juego, lo ponés en tu biblioteca como favorito, no hace falta poner completado o no. Si hacés una opinión… como hace Steam: tiempo de juego, una puntuación y una descripción.”
 - *Jerarquía visual:* “No me gustan muchas cosas de acá. Jerarquía no clara, hay mucho ruido en el nivel… no TODO se resuelve con cards… mirá cómo lo resuelven Twitter, Twitch, Instagram, que es MUY LIMPIO.”
 
-**Revisión del código generado:** ningún cambio se publicó sin pasar lint, build y las pruebas automáticas. Varios errores reales los encontraron esas pruebas o las capturas, no la IA al escribir el código: el filtro que reaparecía, el índice de Firestore, el panel de 68 px y el chat tapando el menú.
+**Revisión del código generado:** ningún cambio se publicó sin pasar lint, build y las pruebas automáticas. Varios errores reales los encontraron esas pruebas o las capturas, no la IA al escribir el código: el filtro que reaparecía, el índice de Firestore, el panel de 68 px, el chat tapando el menú y los mensajes que no llegaban.
 
 ---
 

@@ -103,21 +103,32 @@ export async function getChat(me, other) {
 export async function sendMessage({ me, other, text, existing, via }) {
   const id = chatId(me, other)
   const clean = text.trim()
-  const batch = writeBatch(db)
   const chatRef = doc(db, 'chats', id)
-  const preview = { updatedAt: serverTimestamp(), lastText: clean.slice(0, 140), lastSender: me }
-  if (existing) {
-    batch.update(chatRef, preview)
-  } else {
-    batch.set(chatRef, {
-      members: [me, other].sort(),
-      ...(via ? { via } : {}),
-      createdAt: serverTimestamp(),
-      ...preview,
-    })
+  const write = (create) => {
+    const batch = writeBatch(db)
+    const preview = { updatedAt: serverTimestamp(), lastText: clean.slice(0, 140), lastSender: me }
+    if (create) {
+      batch.set(chatRef, {
+        members: [me, other].sort(),
+        ...(via ? { via } : {}),
+        createdAt: serverTimestamp(),
+        ...preview,
+      })
+    } else {
+      batch.update(chatRef, preview)
+    }
+    batch.set(doc(collection(db, 'chats', id, 'messages')), { sender: me, text: clean, createdAt: serverTimestamp() })
+    return batch.commit()
   }
-  batch.set(doc(collection(db, 'chats', id, 'messages')), { sender: me, text: clean, createdAt: serverTimestamp() })
-  await batch.commit()
+  if (existing) return write(false)
+  try {
+    await write(true)
+  } catch (err) {
+    // Si la otra persona creó el chat al mismo tiempo, crearlo de nuevo sería sobrescribirlo
+    // (las reglas lo rechazan): se reintenta como un mensaje más del chat existente.
+    if (err?.code !== 'permission-denied' || !(await getDoc(chatRef)).exists()) throw err
+    await write(false)
+  }
 }
 
 export function watchMessages(id, onData, onError) {
