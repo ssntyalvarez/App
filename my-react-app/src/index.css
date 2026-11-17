@@ -1262,6 +1262,8 @@ fieldset {
   font-size: 0.9rem;
   grid-auto-flow: column;
   align-items: baseline;
+  /* El número y el “/10” comparten línea base, y esa línea queda centrada en la caja. */
+  align-content: center;
   gap: 1px;
 }
 
@@ -1315,7 +1317,10 @@ fieldset {
 }
 
 .score--lg.score--personal.is-empty .score__value {
+  height: 52px;
   font-size: 1rem;
+  border: 1.5px dashed var(--line-strong);
+  color: var(--muted);
 }
 
 /* ---------- Imágenes de juego ---------- */
