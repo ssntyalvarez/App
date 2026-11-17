@@ -7,7 +7,7 @@ const tier = (score, max) => {
   return 'low'
 }
 
-// Puntuación externa: Metacritic (0–100) obtenida a través de RAWG.
+// Puntuación externa: Metacritic (0–100). El dato viene de RAWG (atribución en el pie de página).
 export function MetacriticScore({ score, platform, size = 'md', showLabel = true }) {
   if (score == null) {
     return (
@@ -32,7 +32,7 @@ export function MetacriticScore({ score, platform, size = 'md', showLabel = true
       {showLabel && (
         <span className="score__label" aria-hidden="true">
           <strong>Metacritic</strong>
-          <span>{platform ? `${platform} · vía RAWG` : 'vía RAWG'}</span>
+          {platform && <span>{platform}</span>}
         </span>
       )}
     </div>

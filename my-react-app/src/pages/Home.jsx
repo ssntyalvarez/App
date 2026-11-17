@@ -12,9 +12,10 @@ import { useCommunityStats, useDocumentTitle, useGames, useGenres, useRecentRevi
 
 const iso = (d) => d.toISOString().slice(0, 10)
 const today = new Date()
-const yearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
-const LAST_YEAR = `${iso(yearAgo)},${iso(today)}`
-// RAWG casi no tiene notas de Metacritic de los lanzamientos más recientes: se usa una década.
+// RAWG no tiene notas de Metacritic de los lanzamientos más recientes (casi ninguna desde 2023):
+// el inicio muestra solo juegos con nota, así que los populares se buscan en los últimos 5 años.
+const fiveYearsAgo = new Date(today.getFullYear() - 5, today.getMonth(), today.getDate())
+const LAST_FIVE_YEARS = `${iso(fiveYearsAgo)},${iso(today)}`
 const decadeAgo = new Date(today.getFullYear() - 10, today.getMonth(), today.getDate())
 const LAST_DECADE = `${iso(decadeAgo)},${iso(today)}`
 
@@ -26,7 +27,7 @@ function Featured({ game }) {
       {backdrop && <div className="featured__backdrop" style={{ backgroundImage: `url("${backdrop}")` }} aria-hidden="true" />}
       <div className="container featured__inner">
         <div className="featured__text">
-          <p className="eyebrow">Destacado · popular en el último año</p>
+          <p className="eyebrow">Destacado · de los más populares</p>
           <h1 id="featured-title" className="featured__title">{game.name}</h1>
           <p className="featured__meta">
             <span>{formatReleased(game.released, game.tba)}</span>
@@ -34,7 +35,7 @@ function Featured({ game }) {
           </p>
           <div className="featured__scores">
             <MetacriticScore score={game.metacritic} size="md" />
-            <CommunityScore stats={stats.data} loading={stats.isLoading} unavailable={!firebaseReady || stats.isError} size="md" />
+            {stats.data?.votes > 0 && <CommunityScore stats={stats.data} size="md" />}
           </div>
           <div className="row">
             <Link to={gamePath(game)} className="btn btn--primary btn--lg">Ver ficha</Link>
@@ -94,7 +95,7 @@ function Rail({ title, subtitle, query, link }) {
         (query.data.results.length ? (
           <div className="game-grid game-grid--rail">
             {query.data.results.map((g) => (
-              <GameCard key={g.id} game={g} />
+              <GameCard key={g.id} game={g} hideEmptyCommunity />
             ))}
           </div>
         ) : (
@@ -143,15 +144,15 @@ function RecentReviews() {
 }
 
 export default function Home() {
-  const popular = useGames({ ordering: '-added', dates: LAST_YEAR, pageSize: 9 })
+  const popular = useGames({ ordering: '-added', dates: LAST_FIVE_YEARS, metacritic: '1,100', pageSize: 9 })
   const topDecade = useGames({ ordering: '-metacritic', dates: LAST_DECADE, pageSize: 8 })
   const classics = useGames({ ordering: '-metacritic', pageSize: 8 })
   const genres = useGenres()
   useDocumentTitle(null)
 
-  // Se prefiere un destacado con imagen y nota de Metacritic; si no hay, alcanza con la imagen.
+  // Destacado: el más popular con imagen (todos tienen nota de Metacritic).
   const results = popular.data?.results ?? []
-  const featured = results.find((g) => g.image && g.metacritic != null) ?? results.find((g) => g.image) ?? results[0]
+  const featured = results.find((g) => g.image) ?? results[0]
   const rest = popular.data ? { ...popular, data: { results: popular.data.results.filter((g) => g !== featured).slice(0, 8) } } : popular
 
   return (
@@ -177,8 +178,8 @@ export default function Home() {
 
       {!popular.isError && (
         <>
-          <Rail title="Populares del último año" subtitle="Los más agregados en RAWG durante los últimos 12 meses." query={rest} link="/juegos" />
-          <Rail title="Mejor puntuados de la última década" subtitle="Ordenados por la nota de Metacritic (vía RAWG) de los últimos 10 años." query={topDecade} link="/juegos?orden=-metacritic" />
+          <Rail title="Populares con nota" subtitle="Los más agregados en RAWG en los últimos 5 años, con nota de Metacritic." query={rest} link="/juegos" />
+          <Rail title="Mejor puntuados de la última década" subtitle="Ordenados por la nota de Metacritic de los últimos 10 años." query={topDecade} link="/juegos?orden=-metacritic" />
           {genres.isSuccess && (
             <section className="section container">
               <h2 className="section__title">Explorá por género</h2>

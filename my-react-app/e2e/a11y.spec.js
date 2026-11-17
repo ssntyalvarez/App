@@ -15,7 +15,7 @@ test('accesibilidad: inicio, catálogo, ficha, ingreso, registro y perfil', asyn
   await mockRawg(page)
   await page.goto('/')
   await expect(page.locator('.game-card').first()).toBeVisible()
-  await expect(page.locator('.score--community .score__label').first()).not.toContainText('Cargando')
+  await expect(page.locator('.game-card .score--mc').first()).toBeVisible()
   await audit(page, 'inicio')
 
   await page.goto('/juegos')
