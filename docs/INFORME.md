@@ -4,7 +4,7 @@
 
 | | |
 | --- | --- |
-| Integrante(s) | *[completar nombre y L.U.]* |
+| Integrante | Santiago Alvarez Granato · L.U. 1209881 |
 | Aplicación publicada | https://app-theta-ten-t7mx3z64op.vercel.app/ |
 | Repositorio | https://github.com/ssntyalvarez/App |
 | Bitácora del proceso | [docs/BITACORA.md](BITACORA.md) |
