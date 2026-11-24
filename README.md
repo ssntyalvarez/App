@@ -38,6 +38,7 @@ La evolución por iteraciones, las pruebas, las dificultades y la justificación
     │   ├── lib/reviews.js     # Operaciones de opiniones en Firestore
     │   ├── lib/profiles.js    # Perfiles públicos y alias
     │   ├── lib/library.js     # Biblioteca personal, favoritos y destacados
+    │   ├── lib/social.js      # Seguir, amigos, chat y mensajes sin leer
     │   ├── lib/image.js       # Compresión del avatar en el navegador
     │   ├── lib/rawg.js        # Cliente del proxy /api/rawg
     │   ├── lib/hooks.js       # Consultas con caché (React Query)
