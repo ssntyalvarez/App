@@ -11,8 +11,8 @@ import { EmptyState, ErrorState, FirebasePending, Spinner } from '../components/
 import { useAuth } from '../context/AuthContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { formatReleased, rawgImage } from '../lib/format.js'
-import { useDocumentTitle, useGame, useGameReviews, useScreenshots } from '../lib/hooks.js'
-import { statsFromReviews } from '../lib/reviews.js'
+import { useDocumentTitle, useGame, useGameReviews, useHelpful, useScreenshots } from '../lib/hooks.js'
+import { sortByHelpful, statsFromReviews } from '../lib/reviews.js'
 
 function Distribution({ reviews }) {
   const counts = Array.from({ length: 11 }, (_, n) => reviews.filter((r) => r.score === n).length)
@@ -93,6 +93,8 @@ export default function GameDetail() {
   const game = useGame(validId ? id : null)
   const shots = useScreenshots(validId ? id : null)
   const reviews = useGameReviews(validId ? id : null)
+  const helpful = useHelpful((reviews.data ?? []).map((r) => r.id))
+  const [order, setOrder] = useState('utiles')
   useDocumentTitle(game.data?.name ?? (game.isError ? 'Juego no disponible' : 'Juego'))
 
   if (!validId || game.error?.code === 'not_found') {
@@ -125,7 +127,9 @@ export default function GameDetail() {
   const stats = statsFromReviews(list)
   const mine = user ? list.find((r) => r.uid === user.uid) : undefined
   // La opinión propia se muestra en su tarjeta editable; la lista muestra las demás.
-  const others = mine ? list.filter((r) => r !== mine) : list
+  const votes = helpful.data ?? {}
+  const rest = mine ? list.filter((r) => r !== mine) : list
+  const others = order === 'utiles' ? sortByHelpful(rest, votes) : rest
   const mcPlatforms = g.metacriticPlatforms ?? []
   const mainPlatform = mcPlatforms.length === 1 ? mcPlatforms[0].platform?.name : null
   const backdrop = rawgImage(g.image, 1280)
@@ -282,11 +286,33 @@ export default function GameDetail() {
           ) : (
             <div className="reviews__grid">
               <div className="reviews__form">
-                <ReviewForm key={mine ? `${mine.id}-${mine.updatedAt?.toMillis?.()}` : 'new'} game={g} existing={mine} />
+                <ReviewForm
+                  key={mine ? `${mine.id}-${mine.updatedAt?.toMillis?.()}` : 'new'}
+                  game={g}
+                  existing={mine}
+                  helpfulCount={mine ? (votes[mine.id]?.length ?? 0) : 0}
+                />
               </div>
               <div className="reviews__list">
                 {others.length ? (
-                  <ReviewList reviews={others} currentUid={user?.uid} />
+                  <>
+                    {others.length > 1 && (
+                      <div className="filter-chips reviews__order" role="group" aria-label="Ordenar opiniones">
+                        {[['utiles', 'Más útiles'], ['recientes', 'Más recientes']].map(([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            className={`chip ${order === value ? 'is-active' : ''}`}
+                            aria-pressed={order === value}
+                            onClick={() => setOrder(value)}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <ReviewList reviews={others} currentUid={user?.uid} votes={votes} />
+                  </>
                 ) : mine ? (
                   <EmptyState title="Por ahora, la única opinión es la tuya" icon="flag">
                     <p>Cuando otras personas opinen, sus reseñas aparecerán acá.</p>

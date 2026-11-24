@@ -8,7 +8,7 @@ import { CardSkeletons, EmptyState, ErrorState, FirebasePending, Spinner } from 
 import { useAuth } from '../context/AuthContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { formatReleased, gamePath, rawgImage } from '../lib/format.js'
-import { useCommunityStats, useDocumentTitle, useGames, useGenres, useRecentReviews } from '../lib/hooks.js'
+import { useCommunityStats, useConnections, useDocumentTitle, useFollowingReviews, useGames, useGenres, useHelpful, useRecentReviews } from '../lib/hooks.js'
 
 const iso = (d) => d.toISOString().slice(0, 10)
 const today = new Date()
@@ -105,8 +105,46 @@ function Rail({ title, subtitle, query, link }) {
   )
 }
 
-function RecentReviews() {
+// Tarjetas de reseña con su juego. Los “Me sirvió” de todas se consultan juntos.
+function ReviewCards({ reviews }) {
   const { user } = useAuth()
+  const helpful = useHelpful(reviews.map((r) => r.id))
+  return (
+    <div className="recent-reviews">
+      {reviews.map((r) => (
+        <div key={r.id} className="recent-review">
+          <Link to={`${gamePath(r)}#resena-${r.uid}`} className="recent-review__game">
+            <GameImage src={r.gameImage} width={420} label={false} />
+            <span>{r.gameName}</span>
+          </Link>
+          <ReviewList reviews={[r]} currentUid={user?.uid} votes={helpful.data ?? {}} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Lo último que opinaron las personas que seguís. Solo aparece cuando hay algo para mostrar.
+function FollowingActivity() {
+  const { user, profile } = useAuth()
+  const connections = useConnections(user && profile ? user.uid : null)
+  const activity = useFollowingReviews(connections.data?.following)
+  if (!activity.data?.length) return null
+  return (
+    <section className="section container" aria-labelledby="actividad-title">
+      <div className="section__head">
+        <div>
+          <h2 id="actividad-title" className="section__title">Actividad de quienes seguís</h2>
+          <p className="muted">Las últimas opiniones de las personas que seguís.</p>
+        </div>
+        <Link to="/personas" className="link-arrow">Buscar personas</Link>
+      </div>
+      <ReviewCards reviews={activity.data} />
+    </section>
+  )
+}
+
+function RecentReviews() {
   const recent = useRecentReviews()
   return (
     <section className="section container">
@@ -127,17 +165,7 @@ function RecentReviews() {
           <p>Elegí un juego del catálogo y escribí la primera.</p>
         </EmptyState>
       ) : (
-        <div className="recent-reviews">
-          {recent.data.map((r) => (
-            <div key={r.id} className="recent-review">
-              <Link to={`${gamePath(r)}#resena-${r.uid}`} className="recent-review__game">
-                <GameImage src={r.gameImage} width={420} label={false} />
-                <span>{r.gameName}</span>
-              </Link>
-              <ReviewList reviews={[r]} currentUid={user?.uid} />
-            </div>
-          ))}
-        </div>
+        <ReviewCards reviews={recent.data} />
       )}
     </section>
   )
@@ -170,6 +198,7 @@ export default function Home() {
       <div className="container home__tasks">
         <TaskChecklist />
       </div>
+      <FollowingActivity />
       {popular.isError && (
         <div className="container">
           <ErrorState error={popular.error} onRetry={() => popular.refetch()} />

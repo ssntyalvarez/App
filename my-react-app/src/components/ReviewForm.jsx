@@ -5,11 +5,12 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { invalidateReviewData } from '../lib/hooks.js'
 import { firestoreMessage } from '../lib/profiles.js'
+import { helpfulText } from './ReviewList.jsx'
 import { deleteReview, formatHours, MAX_REVIEW_LENGTH, saveReview, validateReview } from '../lib/reviews.js'
 
 const SCORES = Array.from({ length: 11 }, (_, i) => i)
 
-export default function ReviewForm({ game, existing }) {
+export default function ReviewForm({ game, existing, helpfulCount = 0 }) {
   const { user, profile } = useAuth()
   const location = useLocation()
   const notify = useToast()
@@ -112,6 +113,7 @@ export default function ReviewForm({ game, existing }) {
           {existing.playtimeHours != null && <span className="playtime">{formatHours(existing.playtimeHours)}</span>}
         </p>
         {existing.text ? <p className="review-own__text">{existing.text}</p> : <p className="muted">Sin reseña escrita.</p>}
+        {helpfulCount > 0 && <p className="helpful helpful--own muted">{helpfulText(helpfulCount)}</p>}
       </div>
     )
   }

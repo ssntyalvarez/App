@@ -11,6 +11,28 @@
 
 ![Checkpoint, inicio](evidencias/final/inicio-desktop-pantalla.jpg)
 
+## Cambios desde la entrega regular
+
+Esta sección resume qué se mejoró o se agregó después de la entrega del 17/11. El detalle, con capturas de antes y después, está en la versión 5 de la [bitácora](BITACORA.md).
+
+**Funciones nuevas (24/11)**
+
+| Función | Qué hace | Dónde está en el código |
+| --- | --- | --- |
+| “Me sirvió” en las reseñas | Cada persona puede marcar como útil la reseña de otra, una sola vez. Las opiniones de un juego se ordenan por las más útiles o por las más recientes. | Colección nueva `helpful`. `listHelpful`, `setHelpful` y `sortByHelpful` en `src/lib/reviews.js`. Componente `Helpful` en `ReviewList.jsx`. |
+| Actividad de quienes seguís | El inicio muestra las últimas opiniones de las personas que seguís. Antes, seguir a alguien no cambiaba nada en el inicio. | `listFollowingReviews` en `src/lib/reviews.js` y `FollowingActivity` en `Home.jsx`. |
+| Mensajes sin leer | El botón Social muestra cuántas conversaciones tenés sin leer. También se marcan en el panel Social y en la página de Mensajes. Al abrir la conversación queda leída. | Campo nuevo `readBy` en `chats`. `isUnread` y `markChatRead` en `src/lib/social.js`. `UnreadContext` en `Conversation.jsx`. |
+
+**Correcciones después de la demostración (17/11)**
+
+- **Chat:** en la demostración los mensajes no llegaban. Se encontraron tres fallas y se corrigieron (ver el punto 6).
+- **Inicio:** ahora muestra solo juegos con nota de Metacritic, porque RAWG no tiene la nota de los juegos del último año.
+- **Ficha:** se corrigió el recuadro de “Tu nota personal”, que mostraba el texto corrido hacia arriba.
+
+**Reglas y pruebas:** las reglas de Firestore suman la colección `helpful` y la marca de lectura del chat. Las pruebas pasaron de 34 a 41 unitarias, de 32 a 37 de reglas y de 26 a 28 de punta a punta.
+
+![Opiniones de un juego, antes y después de “Me sirvió”](evidencias/antes-despues/7-opiniones-me-sirvio.jpg)
+
 ## 1. Idea y público
 
 **Checkpoint** es una red social para jugadores, inspirada en Metacritic y Steam. Sirve para **descubrir videojuegos, comparar la nota de la crítica con la de la comunidad y llevar un registro propio** de lo que jugás.
@@ -26,10 +48,10 @@
 | Catálogo | Más de 500.000 juegos de RAWG. Búsqueda, filtros (género, plataforma, año o década), orden, “Cargar más” y ficha con descripción, capturas, plataformas y lanzamiento. |
 | Puntuaciones | Nota de Metacritic (0 a 100, por plataforma), promedio de la Comunidad Checkpoint (0 a 10, con votos y distribución) y nota personal. |
 | Cuentas | Registro, ingreso y cierre de sesión con Firebase Authentication. Alias único estilo Instagram y tutorial de primeros pasos. |
-| Opiniones | Crear, editar y eliminar una opinión por juego, con horas jugadas, nota de 0 a 10 y reseña. Se mantienen al recargar. |
+| Opiniones | Crear, editar y eliminar una opinión por juego, con horas jugadas, nota de 0 a 10 y reseña. Se mantienen al recargar. Cada reseña se puede marcar con “Me sirvió”. |
 | Perfil | Página pública `/u/alias` con foto, biografía, nivel, seguidores, seguidos, favoritos destacados, biblioteca y reseñas. |
 | Biblioteca | Juegos favoritos, con hasta 4 destacados en el perfil. |
-| Social | Seguir (si es mutuo, son amigos), sugerencias de amigos de amigos, buscador de personas y chat 1 a 1 en tiempo real en ventanas flotantes. |
+| Social | Seguir (si es mutuo, son amigos), actividad de quienes seguís en el inicio, sugerencias de amigos de amigos, buscador de personas y chat 1 a 1 en tiempo real en ventanas flotantes, con aviso de mensajes sin leer. |
 | Configuración | Perfil, Privacidad (quién puede escribirte y si se ven los seguidores y las horas) y Cuenta (correo privado y cambio de contraseña). |
 | Niveles | XP por cada juego opinado y un anillo de color según el nivel, como en Steam. |
 | Experiencia de uso | Validaciones, estados de carga y de error, avisos de éxito, diseño para computadora y celular, navegación con teclado y auditoría de accesibilidad. |
@@ -44,18 +66,19 @@ Se usan **Firebase Authentication** (correo y contraseña) y **Cloud Firestore**
 | `handles/{alias}` | A qué cuenta pertenece cada alias (así no se repiten) | Solo el dueño |
 | `reviews/{juego}_{uid}` | Opinión con horas jugadas, nota de 0 a 10, reseña y datos básicos del juego | Solo el autor |
 | `libraries/{uid}/games/{juego}` | Juegos favoritos | Solo el dueño |
+| `helpful/{reseña}_{uid}` | Voto “Me sirvió” de una persona a una reseña de otra | Solo quien vota |
 | `follows/{seguidor}_{seguido}` | Quién sigue a quién | Solo el seguidor |
-| `chats/{a}_{b}/messages` | Conversaciones 1 a 1 | Solo las dos personas del chat (también para leer) |
+| `chats/{a}_{b}/messages` | Conversaciones 1 a 1 y hasta cuándo leyó cada persona | Solo las dos personas del chat (también para leer) |
 
-**Reglas de seguridad** (`my-react-app/firestore.rules`). Todo lo público se puede leer, pero cada persona solo modifica lo suyo. Las reglas validan tipos, rangos y campos permitidos. La nota tiene que ser un entero de 0 a 10, la reseña tiene que tener entre 10 y 2000 caracteres, no se aceptan campos de correo y el alias tiene que tener un formato válido. Además, el alias se puede cambiar una vez por semana y el chat respeta la opción “quién puede escribirme”. Hay **32 pruebas automáticas** de las reglas en el emulador de Firestore.
+**Reglas de seguridad** (`my-react-app/firestore.rules`). Todo lo público se puede leer, pero cada persona solo modifica lo suyo. Las reglas validan tipos, rangos y campos permitidos. La nota tiene que ser un entero de 0 a 10, la reseña tiene que tener entre 10 y 2000 caracteres, no se aceptan campos de correo y el alias tiene que tener un formato válido. Además, el alias se puede cambiar una vez por semana y el chat respeta la opción “quién puede escribirme”. Nadie puede marcar “Me sirvió” en su propia reseña ni votar dos veces, y cada persona solo puede marcar como leída su parte de un chat. Hay **37 pruebas automáticas** de las reglas en el emulador de Firestore.
 
 ## 4. Dónde se conecta Firebase y cómo se guardan los datos (para la demostración)
 
 - **Configuración:** `my-react-app/src/lib/firebase.js` lee las variables `VITE_FIREBASE_*` con `import.meta.env` e inicializa `auth` y `db`. En Vercel, las variables se cargan en *Settings → Environment Variables*.
 - **Sesión:** `src/context/AuthContext.jsx` maneja el registro, el ingreso, el cierre de sesión y el perfil en tiempo real con `onSnapshot`.
-- **Consultar:** `listGameReviews` y `getCommunityStats` en `src/lib/reviews.js`, `listLibrary` en `src/lib/library.js` y `getConnections` en `src/lib/social.js`.
-- **Agregar:** `saveReview` (`setDoc`), `addToLibrary`, `follow` y `sendMessage`.
-- **Modificar:** `saveReview` sobre una reseña que ya existe (`updateDoc`), `updateProfile` y `setFeatured`.
+- **Consultar:** `listGameReviews`, `getCommunityStats`, `listFollowingReviews` y `listHelpful` en `src/lib/reviews.js`, `listLibrary` en `src/lib/library.js` y `getConnections` en `src/lib/social.js`.
+- **Agregar:** `saveReview` (`setDoc`), `addToLibrary`, `follow`, `sendMessage` y `setHelpful`.
+- **Modificar:** `saveReview` sobre una reseña que ya existe (`updateDoc`), `updateProfile`, `setFeatured` y `markChatRead`.
 - **Eliminar:** `deleteReview`, `removeFromLibrary` y `unfollow`.
 
 **Recorrido para la demostración:** crear una cuenta → opinar sobre un juego → mostrar el documento en Firestore → Datos → editar la nota → recargar la página → eliminar la opinión y ver que desaparece de la base.
@@ -93,10 +116,14 @@ Para cada caso se indica el error o síntoma, la causa y la solución en el cód
 | Seguidores en “…” solo en la versión publicada | La API de Firestore devolvía `PERMISSION_DENIED` porque las reglas publicadas eran de antes de `follows`, y desplegar en Vercel no las actualiza. | Reglas publicadas con `firebase deploy --only firestore:rules`. Si la consulta falla, la interfaz muestra un guion. |
 | Inicio lleno de juegos “Sin nota” (por ejemplo, Crimson Desert) | RAWG devuelve `metacritic: null` para los 3.469 juegos del último año (con `metacritic=1,100` da `count: 0`). Dejó de cargar esa nota alrededor de 2023. | `Home.jsx` muestra los populares de los últimos 5 años con `metacritic: '1,100'` (132 juegos). `GameCard` usa `hideEmptyCommunity` para no mostrar “Sin votos” en el inicio. |
 | En la demostración, los mensajes del chat no llegaban o daba error al enviar | Había tres fallas en `Conversation.jsx` y `sendMessage`. (1) Mientras un envío esperaba al servidor, el siguiente se cortaba en `if (sending) return` y `setText('')` borraba lo escrito. (2) Si los dos mandaban el primer mensaje a la vez, el segundo hacía `set` sobre un chat ya creado, y las reglas lo rechazan con `permission-denied` porque cambia `members` y `createdAt`. (3) Los chats solo se escuchaban (`watchChats`) con una ventana abierta, así que quien recibía no se enteraba. | Los envíos van en cola con una cadena de promesas (`useRef(Promise.resolve())`). El cuadro se vacía al enviar y el texto vuelve si falla. Si hay `permission-denied` y el chat ya existe, `sendMessage` reintenta con `update`. `ChatDockProvider` escucha los chats toda la sesión y abre la ventana cuando llega un mensaje. Hay una prueba nueva, `e2e/chat.spec.js`, con dos navegadores, que falla con el código anterior. |
+| “Me sirvió” y actividad con muchas reseñas o muchos seguidos | El operador `in` de Firestore acepta 30 valores como máximo, y contar los votos reseña por reseña haría una consulta por cada una. | `listHelpful` y `listFollowingReviews` consultan de a tandas de 30 con `Promise.all` y agrupan el resultado en el navegador. Los votos de una página se piden todos juntos. |
+| Votos sin dueño al borrar una reseña | Sin Cloud Functions (plan pago) no hay borrado en cascada. | Las reglas dejan que el autor de la reseña borre sus votos, y `deleteReview` los elimina en un `writeBatch` después de borrar la reseña. |
+| Marcar un chat como leído sin poder tocar el resto | La regla de `update` del chat solo aceptaba la vista previa del último mensaje. | Segunda rama en la regla. Usa `diff().affectedKeys()` sobre el mapa `readBy` para que cada integrante escriba solo su clave, con `request.time`. La lectura también se guarda en `localStorage` por si la escritura falla. |
+| La prueba nueva pasaba sola y fallaba con todas | El emulador comparte los datos entre archivos de prueba, y otro archivo ya había dejado reseñas en el mismo juego. | `e2e/mejoras.spec.js` usa un juego que no usa ninguna otra prueba. |
 | El chat tapaba el menú de cuenta | El contenedor del chat tenía `z-index` 55 y el header 40. | Contenedor del chat en `z-index: 35`. |
 
 ## 7. Verificación
 
-- **Pruebas automáticas:** 34 unitarias, 32 de reglas de Firestore y 26 de punta a punta en navegador, con pruebas en celular y de accesibilidad.
+- **Pruebas automáticas:** 41 unitarias, 37 de reglas de Firestore y 28 de punta a punta en navegador, con pruebas en celular y de accesibilidad.
 - **Con los servicios reales:** catálogo de RAWG y proyecto real de Firebase. Se probó crear, editar, eliminar y recargar, y que otra cuenta no pueda modificar datos ajenos.
 - **Publicación:** cada cambio se fusiona en `main` con un pull request, y Vercel lo publica solo.

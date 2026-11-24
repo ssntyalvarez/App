@@ -1,6 +1,6 @@
 // Parte social: seguir, amigos (seguimiento mutuo), amigos de amigos y chat 1 a 1.
 //   follows/{seguidor}_{seguido}  → { follower, followed, createdAt }
-//   chats/{uidA}_{uidB}           → { members: [a, b], via?, createdAt, updatedAt, lastText, lastSender }
+//   chats/{uidA}_{uidB}           → { members: [a, b], via?, createdAt, updatedAt, lastText, lastSender, readBy? }
 //   chats/{id}/messages/{msgId}   → { sender, text, createdAt }
 import {
   collection,
@@ -15,6 +15,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore'
@@ -128,6 +129,42 @@ export async function sendMessage({ me, other, text, existing, via }) {
     // (las reglas lo rechazan): se reintenta como un mensaje más del chat existente.
     if (err?.code !== 'permission-denied' || !(await getDoc(chatRef)).exists()) throw err
     await write(false)
+  }
+}
+
+// ---------- Mensajes sin leer ----------
+// Una conversación está sin leer si el último mensaje es de la otra persona y llegó después de
+// la última lectura. La lectura se guarda en el chat (`readBy.{uid}`) y también en este
+// dispositivo, por si la escritura falla (sin conexión o con reglas todavía sin publicar).
+
+const seenKey = (uid) => `checkpoint:chat-leido:${uid}`
+
+function localSeen(uid) {
+  try {
+    return JSON.parse(localStorage.getItem(seenKey(uid)) ?? '{}')
+  } catch {
+    return {}
+  }
+}
+
+const millis = (t) => t?.toMillis?.() ?? 0
+
+export function isUnread(chat, me) {
+  if (!chat || !chat.lastSender || chat.lastSender === me) return false
+  const read = Math.max(millis(chat.readBy?.[me]), localSeen(me)[chat.id] ?? 0)
+  return millis(chat.updatedAt) > read
+}
+
+export async function markChatRead(chat, me) {
+  try {
+    localStorage.setItem(seenKey(me), JSON.stringify({ ...localSeen(me), [chat.id]: millis(chat.updatedAt) }))
+  } catch {
+    // Sin almacenamiento local (modo privado): alcanza con la marca del servidor.
+  }
+  try {
+    await updateDoc(doc(db, 'chats', chat.id), { [`readBy.${me}`]: serverTimestamp() })
+  } catch {
+    // La marca local ya evita que siga figurando como no leído en este dispositivo.
   }
 }
 

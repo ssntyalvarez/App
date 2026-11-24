@@ -7,10 +7,14 @@ import Avatar from './Avatar.jsx'
 import { LevelChip } from './LevelBadge.jsx'
 import { Suggestions } from './Social.jsx'
 import { useOpenChat } from './ChatDock.jsx'
+import { useUnread } from './Conversation.jsx'
+import { chatId } from '../lib/social.js'
 import { Spinner } from './States.jsx'
 
-function FriendRow({ uid, filter, onNavigate }) {
+function FriendRow({ uid, me, filter, onNavigate }) {
   const openChat = useOpenChat()
+  const { unread } = useUnread()
+  const hasUnread = unread.has(chatId(me, uid))
   const { data: profile } = useProfile(uid)
   if (!profile) return null
   const f = filter.trim().toLowerCase().replace(/^@/, '')
@@ -35,7 +39,8 @@ function FriendRow({ uid, filter, onNavigate }) {
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M4 5h16v11H9l-5 4z" />
         </svg>
-        <span className="sr-only">Chatear con {profile.displayName}</span>
+        <span className="sr-only">Chatear con {profile.displayName}{hasUnread ? ' (mensajes sin leer)' : ''}</span>
+        {hasUnread && <span className="unread-dot" aria-hidden="true" />}
       </button>
     </li>
   )
@@ -50,6 +55,8 @@ export default function SocialDrawer() {
   const [filter, setFilter] = useState('')
   const connections = useConnections(openAt ? user?.uid : null)
   const panelRef = useRef(null)
+  const { unread } = useUnread()
+  const unreadCount = unread.size
   // El panel se cierra solo al cambiar de página.
   const open = openAt === pathname
   const close = () => setOpenAt(null)
@@ -83,6 +90,12 @@ export default function SocialDrawer() {
           <path d="M16.2 14.6c2.7.1 4.6 1.6 5.3 4.4" />
         </svg>
         <span className="social-toggle__label">Social</span>
+        {unreadCount > 0 && (
+          <span className="unread-badge">
+            {unreadCount > 9 ? '9+' : unreadCount}
+            <span className="sr-only"> {unreadCount === 1 ? 'conversación sin leer' : 'conversaciones sin leer'}</span>
+          </span>
+        )}
       </button>
       {/* El panel se monta en <body>: el encabezado usa backdrop-filter, que volvería “fijo” al panel
           respecto del encabezado en lugar de la pantalla. Existe solo mientras está abierto. */}
@@ -117,13 +130,22 @@ export default function SocialDrawer() {
         </form>
         <p className="field__hint drawer__hint">Filtra tus amigos mientras escribís. “Buscar” busca en toda la comunidad.</p>
 
+        <Link to="/mensajes" className="drawer__messages" onClick={close}>
+          <span>Mensajes</span>
+          {unreadCount > 0 ? (
+            <span className="unread-badge unread-badge--inline">{unreadCount > 9 ? '9+' : unreadCount} sin leer</span>
+          ) : (
+            <span className="muted">Ver conversaciones</span>
+          )}
+        </Link>
+
         <section className="drawer__section">
           <h3>Tus amigos {connections.data && <span className="pill">{friends.length}</span>}</h3>
           {connections.isPending ? (
             <Spinner />
           ) : friends.length ? (
             <ul className="drawer-friends">
-              {friends.map((uid) => <FriendRow key={uid} uid={uid} filter={filter} onNavigate={close} />)}
+              {friends.map((uid) => <FriendRow key={uid} uid={uid} me={user.uid} filter={filter} onNavigate={close} />)}
             </ul>
           ) : connections.isError ? (
             <p className="form-error">No se pudo cargar tu lista de amigos.</p>

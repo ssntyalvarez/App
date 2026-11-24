@@ -23,6 +23,7 @@ Esta bitácora registra los **cambios grandes** entre versiones, con capturas de
 | 2 · Mejora de funciones | 20/10 | Perfiles públicos, biblioteca personal, favoritos y destacados. | commits `fe9727a`, `23b9821` |
 | 3 · Refinamiento y publicación | 20/10 a 03/11 | Rediseño visual, datos reales de RAWG, proyecto real de Firebase y publicación en Vercel. | commits `65d2ce3` → `6d18c4f`, PR #2 |
 | 4 · Versión final | 03/11 | Pantallas de acceso con personajes, opiniones estilo Steam, tutorial, parte social, chat, niveles y rediseño del perfil. | PR #3 → PR #9 |
+| 5 · Mejoras para el final | 17/11 a 24/11 | Correcciones después de la demostración, “Me sirvió” en las reseñas, actividad de quienes seguís y mensajes sin leer. | PR #12 → PR #18 |
 
 ---
 
@@ -166,6 +167,50 @@ La primera versión del perfil estaba muy cargada, con una tarjeta para cada dat
 
 ---
 
+## Versión 5 · Mejoras para el final
+
+Esta versión reúne todo lo que cambió **después de la entrega regular del 17/11**. No hubo correcciones pedidas por el profesor, así que el criterio fue otro. Primero se arregló lo que falló en la demostración. Después se sumaron tres funciones para que la parte social sirva para algo más que seguir y chatear.
+
+### Correcciones después de la demostración (17/11)
+- **Chat:** los mensajes no llegaban. Se reprodujo con dos navegadores, se encontraron tres fallas y se agregó una prueba automática (el detalle está en las dificultades de la versión 4).
+- **Inicio solo con juegos con nota:** RAWG no tiene la nota de Metacritic de los juegos del último año, y el inicio se veía vacío.
+- **Recuadro de “Tu nota personal”:** el texto “Sin puntuar” quedaba corrido hacia arriba.
+
+### “Me sirvió” en las reseñas
+Como en Steam, cada persona puede marcar como útil la reseña de otra. Hay un voto por persona y por reseña, y nadie puede votar la suya. Las opiniones de un juego se pueden ordenar por las más útiles o por las más recientes. El autor ve a cuántas personas les sirvió su reseña.
+
+Los votos se guardan en una colección nueva de Firestore, `helpful`. Las reglas comprueban que la reseña exista, que el voto sea de quien lo manda y que no sea para una reseña propia.
+
+![Opiniones de un juego, antes y después](evidencias/antes-despues/7-opiniones-me-sirvio.jpg)
+
+### Actividad de quienes seguís
+Antes, seguir a alguien no cambiaba nada en el inicio. Ahora aparece una sección con las últimas opiniones de las personas que seguís, arriba del catálogo. Si no seguís a nadie o todavía no opinaron, la sección no se muestra, para no dejar un bloque vacío.
+
+![Inicio, antes y después de seguir a otras personas](evidencias/antes-despues/8-inicio-actividad.jpg)
+
+### Mensajes sin leer
+En la demostración, quien recibía un mensaje no se enteraba. Eso ya se había resuelto abriendo sola la ventana del chat, pero faltaba el caso de los mensajes que llegan cuando no estás conectado. Ahora el botón Social muestra cuántas conversaciones tenés sin leer. También se marcan en el panel Social y en la página de Mensajes. Al abrir la conversación queda leída, y eso se guarda en Firestore para que valga en cualquier dispositivo.
+
+![Mensajes, antes y después](evidencias/antes-despues/9-mensajes-sin-leer.jpg)
+
+![Panel Social con el aviso de mensajes sin leer](evidencias/final/social-sin-leer.jpg)
+
+### Pruebas de la versión 5
+| Prueba | Antes | Ahora |
+| --- | --- | --- |
+| `npm run lint` y `npm run build` | Sin errores | Sin errores |
+| `npm test` (se suman mensajes sin leer y orden por “Me sirvió”) | 34/34 | 41/41 |
+| `npm run test:rules` (se suman los votos y la marca de lectura) | 32/32 | 37/37 |
+| `npm run test:e2e` (se suma `mejoras.spec.js`, con dos navegadores) | 26/26 | 28/28 |
+
+### Dificultades de la versión 5
+- *Límite de 30 valores en las consultas:* para traer las opiniones de la gente que seguís, o los votos de varias reseñas, Firestore usa el operador `in`, que acepta 30 valores como máximo. Las consultas se hacen de a tandas de 30 y el resultado se junta en el navegador.
+- *Votos que quedaban sueltos:* si alguien borraba su reseña, los “Me sirvió” seguían en la base. Borrarlos solos desde el servidor necesita Cloud Functions, que es del plan pago. Se resolvió con una regla que deja al autor borrar los votos de su reseña, y la app los borra junto con ella.
+- *Marcar como leído sin abrir permisos de más:* la regla del chat solo dejaba actualizar el último mensaje. Se agregó un segundo caso que permite a cada persona escribir únicamente su propia marca de lectura. Como en la entrega anterior las reglas publicadas quedaron viejas más de una vez, la lectura también se guarda en el dispositivo, así el aviso se apaga aunque las reglas nuevas todavía no estén publicadas.
+- *Una prueba que pasaba sola y fallaba con las demás:* la prueba nueva usaba el mismo juego que otras, y encontraba reseñas de más porque el emulador comparte los datos. Ahora usa un juego propio.
+
+---
+
 ## Uso de inteligencia artificial
 
 **Herramienta:** Claude Code, el asistente de programación de Anthropic, trabajando sobre el repositorio de GitHub. Escribió el código, corrió las pruebas, sacó capturas de cada pantalla para revisarlas y subió cada cambio en una rama aparte, con un pull request antes de fusionarlo en `main`.
@@ -174,6 +219,7 @@ La primera versión del perfil estaba muy cargada, con una tarjeta para cada dat
 1. El autor definió la idea, el alcance y las decisiones de diseño, y revisó cada versión publicada.
 2. La IA programó y probó cada cambio con pruebas automáticas (unitarias, de reglas en el emulador y en navegador) antes de entregarlo.
 3. Las críticas del autor sobre cada resultado se convirtieron en cambios concretos. Gran parte de la versión 4 salió de esas revisiones.
+4. Para la versión 5, el autor le pidió a la IA ideas de mejora para el final. La IA propuso tres funciones, y el autor decidió hacer las tres.
 
 **Ejemplos representativos de instrucciones dadas a la IA**
 - *Definición:* “Usá RAWG como fuente de datos… Protegé la clave de RAWG en una función de servidor compatible con Vercel. Limitá sus rutas y parámetros…”
@@ -200,6 +246,7 @@ Son versiones cortas de instrucciones reales que se dieron durante el proyecto. 
 | Composición | Hero de acceso con recortes limpios (sin halo), misma escala y encuadre entre personajes y sin cortes arbitrarios. |
 | Contenido | Inicio solo con juegos que tengan nota de Metacritic. Ocultar estados vacíos como “Sin votos” en la vitrina. |
 | Interacción | Chat como los susurros de Twitch, con ventanas flotantes, apilables y minimizables, sin salir de la página. |
+| Mejoras para el final | Proponer mejoras para la instancia de final sobre lo ya entregado, y después implementar las tres propuestas con reglas, pruebas y documentación. |
 
 **Revisión del código generado:** ningún cambio se publicó sin pasar lint, build y las pruebas automáticas. Varios errores reales los encontraron esas pruebas o las capturas, no la IA al escribir el código. Por ejemplo, el filtro que volvía a aparecer, el índice de Firestore, el panel de 68 px, el chat que tapaba el menú y los mensajes que no llegaban.
 

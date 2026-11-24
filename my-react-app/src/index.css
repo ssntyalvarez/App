@@ -4907,3 +4907,137 @@ fieldset {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- “Me sirvió” en las reseñas ---------- */
+
+.helpful {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+}
+
+.helpful--own {
+  margin-top: 8px;
+}
+
+.helpful__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text-soft);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.helpful__btn:hover {
+  border-color: var(--text-soft);
+  color: var(--text);
+}
+
+.helpful__btn.is-on {
+  border-color: var(--lime);
+  background: var(--lime-soft);
+  color: var(--lime);
+}
+
+.helpful__btn:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.reviews__order {
+  margin-bottom: 14px;
+}
+
+/* ---------- Mensajes sin leer ---------- */
+
+.unread-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--ink-on-lime);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.unread-badge--inline {
+  height: 22px;
+  padding: 0 9px;
+}
+
+.unread-dot {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--lime);
+}
+
+.social-toggle {
+  position: relative;
+}
+
+@media (max-width: 520px) {
+  .social-toggle .unread-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+  }
+}
+
+.icon-btn--chat {
+  position: relative;
+}
+
+.icon-btn--chat .unread-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.drawer__messages {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.drawer__messages:hover {
+  background: var(--surface-2);
+}
+
+.drawer__messages .muted {
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+.chat-item .unread-dot {
+  margin-left: auto;
+}
+
+.chat-item.is-unread .chat-item__text .muted {
+  color: var(--text);
+  font-weight: 600;
+}
