@@ -138,6 +138,31 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
+    // ---------- “Me sirvió” ----------
+    // helpful/{reviewId}_{uid}: un voto por persona y reseña. Nadie puede votar su propia reseña.
+    // `author` y `gameId` se copian de la reseña (se comprueban acá) para poder consultar los votos.
+    function validHelpful(d, voteId) {
+      let review = get(/databases/$(database)/documents/reviews/$(d.reviewId)).data;
+      return d.keys().hasOnly(['reviewId', 'uid', 'author', 'gameId', 'createdAt'])
+        && d.keys().hasAll(['reviewId', 'uid', 'author', 'gameId', 'createdAt'])
+        && d.reviewId is string
+        && d.uid == request.auth.uid
+        && voteId == d.reviewId + '_' + request.auth.uid
+        && d.author != request.auth.uid
+        && d.author == review.uid
+        && d.gameId == review.gameId
+        && d.createdAt == request.time;
+    }
+
+    match /helpful/{voteId} {
+      allow read: if true;
+      allow create: if signedIn() && validHelpful(request.resource.data, voteId);
+      // Lo quita quien votó; el autor los borra junto con su reseña.
+      allow delete: if signedIn()
+        && (resource.data.uid == request.auth.uid || resource.data.author == request.auth.uid);
+      allow update: if false;
+    }
+
     // ---------- Biblioteca personal ----------
     // libraries/{uid}/games/{gameId}: los juegos favoritos de cada persona.
     // No guarda estados ni puntuación: la nota y las horas salen de reviews (una sola fuente).
@@ -194,6 +219,7 @@ service cloud.firestore {
 
     // ---------- Chat 1 a 1 ----------
     // chats/{uidA}_{uidB} (uids ordenados). Solo sus dos integrantes pueden leerlo y escribir.
+    // `readBy.{uid}` guarda hasta cuándo leyó cada integrante (mensajes sin leer).
     // Para iniciar una conversación se respeta la configuración “quién puede escribirme” del otro;
     // para “amigos y amigos de amigos” hay que indicar en `via` un amigo en común.
     function canStartChat(me, other, via) {
@@ -223,12 +249,24 @@ service cloud.firestore {
           request.resource.data.get('via', null)
         );
 
+      // Dos cambios posibles: un mensaje nuevo (vista previa) o marcar la conversación como leída.
+      // `readBy` es { uid: fecha }: cada integrante solo puede escribir su propia marca.
       allow update: if signedIn()
         && request.auth.uid in resource.data.members
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt', 'lastText', 'lastSender'])
-        && request.resource.data.lastSender == request.auth.uid
-        && request.resource.data.lastText is string && request.resource.data.lastText.size() <= 140
-        && request.resource.data.updatedAt == request.time;
+        && (
+          (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt', 'lastText', 'lastSender'])
+            && request.resource.data.lastSender == request.auth.uid
+            && request.resource.data.lastText is string && request.resource.data.lastText.size() <= 140
+            && request.resource.data.updatedAt == request.time
+          )
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy'])
+            && request.resource.data.readBy is map
+            && request.resource.data.readBy.diff(resource.data.get('readBy', {})).affectedKeys().hasOnly([request.auth.uid])
+            && request.resource.data.readBy[request.auth.uid] == request.time
+          )
+        );
 
       allow delete: if false;
 

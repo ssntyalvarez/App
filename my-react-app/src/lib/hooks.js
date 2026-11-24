@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { fetchGame, fetchGames, fetchGenres, fetchPlatforms, fetchScreenshots } from './rawg.js'
 import { firebaseReady } from './firebase.js'
-import { getCommunityStats, listGameReviews, listRecentReviews, listUserReviews } from './reviews.js'
+import { getCommunityStats, listFollowingReviews, listGameReviews, listHelpful, listRecentReviews, listUserReviews } from './reviews.js'
 import { getProfile, getProfileByHandle } from './profiles.js'
 import { listLibrary } from './library.js'
 import { getConnections, suggestFriendsOfFriends } from './social.js'
@@ -103,6 +103,25 @@ export function useUserReviews(uid) {
 
 export function useRecentReviews() {
   return useQuery({ queryKey: ['reviews', 'recent'], queryFn: () => listRecentReviews(6), enabled: firebaseReady })
+}
+
+// Últimas reseñas de las personas que seguís.
+export function useFollowingReviews(following) {
+  return useQuery({
+    queryKey: ['reviews', 'following', following],
+    queryFn: () => listFollowingReviews(following, 6),
+    enabled: firebaseReady && !!following?.length,
+  })
+}
+
+// Votos “Me sirvió” de un grupo de reseñas: { [reviewId]: [uid, …] }.
+export function useHelpful(reviewIds) {
+  return useQuery({
+    queryKey: ['helpful', reviewIds],
+    queryFn: () => listHelpful(reviewIds),
+    enabled: firebaseReady && reviewIds.length > 0,
+    staleTime: 30 * 1000,
+  })
 }
 
 export function useProfile(uid) {

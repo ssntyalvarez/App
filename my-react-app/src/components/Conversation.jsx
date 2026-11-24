@@ -1,10 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { useToast } from '../context/ToastContext.jsx'
 import { formatDate } from '../lib/format.js'
 import { firestoreMessage } from '../lib/profiles.js'
 import { MAX_MESSAGE, canMessage, chatId, sendMessage, watchChats, watchMessages } from '../lib/social.js'
 import Avatar from './Avatar.jsx'
+
+// Conversaciones sin leer: las calcula ChatDockProvider (que escucha los chats de la sesión).
+// oxlint-disable-next-line react/only-export-components
+export const UnreadContext = createContext({ unread: new Set(), markRead: () => {} })
+
+// oxlint-disable-next-line react/only-export-components
+export function useUnread() {
+  return useContext(UnreadContext)
+}
 
 const timeFmt = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit' })
 
@@ -40,6 +49,19 @@ export function Conversation({ me, other, chat, compact = false }) {
     )
   }, [chat, id])
   const list = chat && messages.id === id ? messages.list : []
+
+  // Tener la conversación a la vista la marca como leída.
+  const { unread, markRead } = useUnread()
+  const pendingRead = Boolean(chat) && unread.has(id)
+  useEffect(() => {
+    if (!pendingRead) return undefined
+    const mark = () => {
+      if (!document.hidden) markRead(chat)
+    }
+    mark()
+    document.addEventListener('visibilitychange', mark)
+    return () => document.removeEventListener('visibilitychange', mark)
+  }, [pendingRead, chat, markRead])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })

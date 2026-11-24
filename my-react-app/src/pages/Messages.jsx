@@ -5,15 +5,17 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { useDocumentTitle, useProfile, useProfileByHandle } from '../lib/hooks.js'
 import { chatId } from '../lib/social.js'
-import { Conversation, useChats } from '../components/Conversation.jsx'
+import { Conversation, useChats, useUnread } from '../components/Conversation.jsx'
 
 function ChatListItem({ chat, me, active }) {
   const otherUid = chat.members.find((m) => m !== me)
   const { data: other } = useProfile(otherUid)
+  const { unread } = useUnread()
+  const isNew = unread.has(chat.id)
   if (!other) return <li className="chat-item is-loading"><span className="muted">Cargando…</span></li>
   return (
     <li>
-      <Link to={`/mensajes/${other.handle}`} className={`chat-item ${active ? 'is-active' : ''}`} aria-current={active ? 'page' : undefined}>
+      <Link to={`/mensajes/${other.handle}`} className={`chat-item ${active ? 'is-active' : ''} ${isNew ? 'is-unread' : ''}`} aria-current={active ? 'page' : undefined}>
         <Avatar profile={other} size={42} />
         <span className="chat-item__text">
           <strong>{other.displayName}</strong>
@@ -22,6 +24,7 @@ function ChatListItem({ chat, me, active }) {
             {chat.lastText}
           </span>
         </span>
+        {isNew && <span className="unread-dot"><span className="sr-only">Sin leer</span></span>}
       </Link>
     </li>
   )

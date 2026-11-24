@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import Avatar from '../components/Avatar.jsx'
 import EntryEditor from '../components/EntryEditor.jsx'
 import GameImage from '../components/GameImage.jsx'
+import { Helpful } from '../components/ReviewList.jsx'
 import { TaskChecklist } from '../components/Onboarding.jsx'
 import { FollowButton, FollowListDialog, MessageButton } from '../components/Social.jsx'
 import { CogIcon, LevelMark } from '../components/LevelBadge.jsx'
@@ -13,7 +14,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { firebaseReady } from '../lib/firebase.js'
 import { formatAverage, formatDate, gamePath } from '../lib/format.js'
-import { invalidateProfileData, invalidateReviewData, useConnections, useDocumentTitle, useLibrary, useProfileByHandle, useUserReviews } from '../lib/hooks.js'
+import { invalidateProfileData, invalidateReviewData, useConnections, useDocumentTitle, useHelpful, useLibrary, useProfileByHandle, useUserReviews } from '../lib/hooks.js'
 import { MAX_FEATURED } from '../lib/library.js'
 import { useLibraryActions } from '../lib/libraryActions.js'
 import { fileToAvatar } from '../lib/image.js'
@@ -166,6 +167,8 @@ function OwnReviewActions({ review }) {
 }
 
 function ReviewsTab({ reviews, isOwner }) {
+  const { user } = useAuth()
+  const helpful = useHelpful(reviews.map((r) => r.id))
   if (!reviews.length) {
     return (
       <EmptyState title="Todavía no hay reseñas" icon="flag">
@@ -188,6 +191,7 @@ function ReviewsTab({ reviews, isOwner }) {
             {r.playtimeHours != null && <p className="playtime">{formatHours(r.playtimeHours)}</p>}
             {r.text ? <p>{r.text}</p> : <p className="muted">Sin reseña escrita.</p>}
             <p className="fine-print">{formatDate(r.updatedAt)}</p>
+            <Helpful review={r} voters={helpful.data?.[r.id]} currentUid={user?.uid} />
             {isOwner && <OwnReviewActions review={r} />}
           </div>
         </li>

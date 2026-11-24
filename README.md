@@ -9,7 +9,9 @@ Aplicación web para **descubrir videojuegos, comparar puntuaciones y opinar**, 
 - **Biblioteca personal:** los juegos que te gustan, con hasta 4 destacados en el perfil. Se agregan desde la ficha o desde Editar perfil.
 - **Opiniones estilo Steam:** horas jugadas, puntuación de 0 a 10 y una reseña escrita. La nota y las horas de cada juego del perfil salen siempre de tu reseña.
 
-- **Social:** seguir perfiles; si se siguen mutuamente son amigos. Sugerencias de amigos de amigos y chat 1 a 1 en tiempo real.
+- **Social:** seguir perfiles; si se siguen mutuamente son amigos. Sugerencias de amigos de amigos y chat 1 a 1 en tiempo real, con aviso de mensajes sin leer.
+- **Actividad de quienes seguís:** el inicio muestra las últimas opiniones de las personas que seguís.
+- **“Me sirvió”:** cada reseña se puede marcar como útil (un voto por persona) y las opiniones de un juego se ordenan por las más útiles.
 - **Configuración** (engranaje en tu perfil): perfil público, privacidad (quién puede escribirte: cualquiera, amigos de amigos, solo amigos o nadie; mostrar seguidores y horas) y cuenta (correo privado, cambio de contraseña). Todas las cuentas son públicas.
 - **Niveles y XP:** cada juego que opinás suma 100 XP (+50 si la reseña es detallada). Rangos con color propio: Novato, Aprendiz, Jugador, Veterano, Experto y Leyenda.
 
@@ -99,7 +101,8 @@ No hace falta el plan Blaze ni Firebase Storage: el avatar se comprime en el nav
 | `reviews/{gameId}_{uid}` | Horas jugadas, puntuación 0–10, reseña (10–2000 caracteres) y datos básicos del juego | Solo el autor |
 | `libraries/{uid}/games/{gameId}` | Juego favorito (datos básicos del juego) | Solo el dueño |
 | `follows/{seguidor}_{seguido}` | Quién sigue a quién (amigos = mutuo) | Solo el seguidor |
-| `chats/{a}_{b}` y `messages/` | Conversaciones 1 a 1 | Solo sus dos integrantes (lectura y escritura) |
+| `helpful/{reseña}_{uid}` | Voto “Me sirvió” de una persona a una reseña ajena | Solo quien vota |
+| `chats/{a}_{b}` y `messages/` | Conversaciones 1 a 1 y hasta cuándo leyó cada integrante (`readBy`) | Solo sus dos integrantes (lectura y escritura) |
 
 Todo es de lectura pública; el correo y la contraseña quedan en Firebase Authentication y nunca se guardan en Firestore.
 

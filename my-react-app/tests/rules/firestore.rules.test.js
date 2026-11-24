@@ -305,4 +305,54 @@ describe('chat', () => {
     await assertFails(addDoc(collection(as('caro'), 'chats', 'ana_beto', 'messages'), { sender: 'caro', text: 'hola', createdAt: serverTimestamp() }))
     await assertFails(start('caro', 'dani'.replace('dani', 'ana'), 'x'.repeat(141)))
   })
+  it('cada integrante marca como leída solo su parte de la conversación', async () => {
+    await start('ana', 'beto')
+    const chat = (uid) => doc(as(uid), 'chats', 'ana_beto')
+    await assertSucceeds(updateDoc(chat('beto'), { 'readBy.beto': serverTimestamp() }))
+    await assertSucceeds(updateDoc(chat('ana'), { 'readBy.ana': serverTimestamp() }))
+    // No se puede marcar por la otra persona, con otra fecha, ni desde afuera del chat.
+    await assertFails(updateDoc(chat('beto'), { 'readBy.ana': serverTimestamp() }))
+    await assertFails(updateDoc(chat('beto'), { 'readBy.beto': new Date(2100, 0, 1) }))
+    await assertFails(updateDoc(chat('caro'), { 'readBy.caro': serverTimestamp() }))
+    // Marcar como leído no permite tocar otros campos del chat.
+    await assertFails(updateDoc(chat('beto'), { 'readBy.beto': serverTimestamp(), lastText: 'cambiado' }))
+    expect((await getDoc(chat('ana'))).data().lastText).toBe('Hola!')
+  })
+})
+
+describe('“me sirvió” en las reseñas', () => {
+  const vote = (uid, extra = {}) => ({ reviewId: '3498_ana', uid, author: 'ana', gameId: '3498', createdAt: serverTimestamp(), ...extra })
+  const voteRef = (uid, who = uid) => doc(as(who), 'helpful', `3498_ana_${uid}`)
+
+  beforeEach(async () => {
+    await setDoc(doc(as('ana'), 'reviews', '3498_ana'), review('ana'))
+  })
+
+  it('una persona con sesión marca la reseña de otra; cualquiera puede leer los votos', async () => {
+    await assertSucceeds(setDoc(voteRef('beto'), vote('beto')))
+    await assertSucceeds(getDocs(query(collection(anon(), 'helpful'), where('reviewId', 'in', ['3498_ana']))))
+    await assertFails(setDoc(doc(anon(), 'helpful', '3498_ana_beto'), vote('beto')))
+  })
+
+  it('no se puede votar la reseña propia, por otra persona ni una reseña que no existe', async () => {
+    await assertFails(setDoc(voteRef('ana'), vote('ana')))
+    await assertFails(setDoc(voteRef('caro', 'beto'), vote('caro')))
+    await assertFails(setDoc(doc(as('beto'), 'helpful', '1_ana_beto'), vote('beto', { reviewId: '1_ana', gameId: '1' })))
+  })
+
+  it('el autor y el juego tienen que coincidir con la reseña, y no se aceptan campos extra', async () => {
+    await assertFails(setDoc(voteRef('beto'), vote('beto', { author: 'caro' })))
+    await assertFails(setDoc(voteRef('beto'), vote('beto', { gameId: '1' })))
+    await assertFails(setDoc(voteRef('beto'), vote('beto', { peso: 100 })))
+    await assertFails(setDoc(doc(as('beto'), 'helpful', 'otro_id'), vote('beto')))
+  })
+
+  it('el voto lo quita quien votó o el autor de la reseña, y no se puede modificar', async () => {
+    await setDoc(voteRef('beto'), vote('beto'))
+    await setDoc(voteRef('caro'), vote('caro'))
+    await assertFails(updateDoc(voteRef('beto'), { gameId: '3498' }))
+    await assertFails(deleteDoc(voteRef('beto', 'caro')))
+    await assertSucceeds(deleteDoc(voteRef('beto')))
+    await assertSucceeds(deleteDoc(voteRef('caro', 'ana')))
+  })
 })

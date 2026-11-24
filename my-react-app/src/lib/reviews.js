@@ -15,6 +15,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from './firebase.js'
 
@@ -104,5 +105,60 @@ export async function saveReview({ uid, game, score, text, hours, existing }) {
 }
 
 export async function deleteReview(gameId, uid) {
-  await deleteDoc(doc(db, 'reviews', reviewId(gameId, uid)))
+  const id = reviewId(gameId, uid)
+  await deleteDoc(doc(db, 'reviews', id))
+  // Los “Me sirvió” de la reseña se borran con ella (si falla, quedan sin efecto: nadie los lee).
+  try {
+    const votes = await getDocs(query(collection(db, 'helpful'), where('reviewId', '==', id)))
+    if (!votes.empty) {
+      const batch = writeBatch(db)
+      votes.docs.forEach((d) => batch.delete(d.ref))
+      await batch.commit()
+    }
+  } catch {
+    // Sin permiso o sin conexión: no afecta a la eliminación de la reseña.
+  }
+}
+
+// ---------- Actividad de las personas que seguís ----------
+
+const chunks = (list, size) => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, (i + 1) * size))
+
+// Firestore admite hasta 30 valores en `in`: se consulta por tandas y se ordena acá.
+export async function listFollowingReviews(following, max = 6) {
+  if (!following.length) return []
+  const snaps = await Promise.all(
+    chunks(following.slice(0, 90), 30).map((uids) => getDocs(query(collection(db, 'reviews'), where('uid', 'in', uids)))),
+  )
+  return snaps.flatMap(fromSnap).sort(byUpdatedDesc).slice(0, max)
+}
+
+// ---------- “Me sirvió” ----------
+// helpful/{reviewId}_{uid} → { reviewId, uid, author, gameId, createdAt }
+
+// Devuelve { [reviewId]: [uid, …] } con quiénes marcaron cada reseña como útil.
+export async function listHelpful(reviewIds) {
+  const votes = {}
+  if (!reviewIds.length) return votes
+  const snaps = await Promise.all(
+    chunks(reviewIds, 30).map((ids) => getDocs(query(collection(db, 'helpful'), where('reviewId', 'in', ids)))),
+  )
+  snaps.forEach((snap) =>
+    snap.docs.forEach((d) => {
+      const { reviewId: id, uid } = d.data()
+      ;(votes[id] ??= []).push(uid)
+    }),
+  )
+  return votes
+}
+
+export async function setHelpful({ review, uid, value }) {
+  const ref = doc(db, 'helpful', `${review.id}_${uid}`)
+  if (!value) return deleteDoc(ref)
+  return setDoc(ref, { reviewId: review.id, uid, author: review.uid, gameId: review.gameId, createdAt: serverTimestamp() })
+}
+
+// Las más útiles primero; a igual cantidad, las más recientes.
+export function sortByHelpful(reviews, votes = {}) {
+  return [...reviews].sort((a, b) => (votes[b.id]?.length ?? 0) - (votes[a.id]?.length ?? 0) || byUpdatedDesc(a, b))
 }

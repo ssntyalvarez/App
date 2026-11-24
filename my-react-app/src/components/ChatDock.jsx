@@ -1,11 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getProfile } from '../lib/profiles.js'
-import { chatId } from '../lib/social.js'
+import { chatId, isUnread, markChatRead } from '../lib/social.js'
 import Avatar from './Avatar.jsx'
-import { Conversation, useChats } from './Conversation.jsx'
+import { Conversation, UnreadContext, useChats } from './Conversation.jsx'
 
 const ChatDockContext = createContext(() => {})
 
@@ -23,6 +23,19 @@ export function ChatDockProvider({ children }) {
   // Las conversaciones se escuchan siempre que hay sesión, para enterarse de los mensajes nuevos.
   const { chats } = useChats(user?.uid)
   const { pathname } = useLocation()
+
+  // Conversaciones sin leer. `readTick` vuelve a calcularlas al marcar una como leída: la marca
+  // también se guarda en el dispositivo, y eso no dispara una actualización por sí solo.
+  const [readTick, setReadTick] = useState(0)
+  const uid = user?.uid
+  const unreadValue = useMemo(() => {
+    const unread = new Set(uid && readTick >= 0 ? (chats ?? []).filter((c) => isUnread(c, uid)).map((c) => c.id) : [])
+    const markRead = (chat) => {
+      markChatRead(chat, uid)
+      setReadTick((n) => n + 1)
+    }
+    return { unread, markRead }
+  }, [chats, uid, readTick])
 
   const openChat = useCallback((profile) => {
     setWindows((list) => {
@@ -62,6 +75,7 @@ export function ChatDockProvider({ children }) {
 
   return (
     <ChatDockContext.Provider value={openChat}>
+      <UnreadContext.Provider value={unreadValue}>
       {children}
       {user &&
         windows.length > 0 &&
@@ -75,6 +89,9 @@ export function ChatDockProvider({ children }) {
                     <button type="button" className="chat-window__title" onClick={() => toggle(profile.uid)} aria-expanded={!minimized}>
                       <Avatar profile={profile} size={28} />
                       <strong>{profile.displayName}</strong>
+                      {minimized && chat && unreadValue.unread.has(chat.id) && (
+                        <span className="unread-dot"><span className="sr-only">Mensajes sin leer</span></span>
+                      )}
                     </button>
                     <Link to={`/mensajes/${profile.handle}`} className="chat-window__btn" title="Abrir en pantalla completa" onClick={() => close(profile.uid)}>
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7" /></svg>
@@ -96,6 +113,7 @@ export function ChatDockProvider({ children }) {
           </div>,
           document.body,
         )}
+      </UnreadContext.Provider>
     </ChatDockContext.Provider>
   )
 }
