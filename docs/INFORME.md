@@ -127,3 +127,35 @@ Para cada caso se indica el error o síntoma, la causa y la solución en el cód
 - **Pruebas automáticas:** 41 unitarias, 37 de reglas de Firestore y 28 de punta a punta en navegador, con pruebas en celular y de accesibilidad.
 - **Con los servicios reales:** catálogo de RAWG y proyecto real de Firebase. Se probó crear, editar, eliminar y recargar, y que otra cuenta no pueda modificar datos ajenos.
 - **Publicación:** cada cambio se fusiona en `main` con un pull request, y Vercel lo publica solo.
+
+## 8. Organización del proyecto y componentes principales
+
+Todo el código de la app está en la carpeta `my-react-app/`. Adentro se separa en cuatro partes.
+
+| Carpeta | Qué tiene | Archivos principales |
+| --- | --- | --- |
+| `src/pages/` | Una página por ruta. Se cargan solo cuando se entra a esa ruta. | `Home.jsx` (inicio), `Catalog.jsx` (catálogo), `GameDetail.jsx` (ficha), `Profile.jsx` (perfil), `ProfileEdit.jsx` (configuración), `Messages.jsx`, `People.jsx` y `Auth.jsx` (ingresar y crear cuenta). |
+| `src/components/` | Piezas que se reutilizan en varias páginas. | `Layout.jsx` (encabezado, pie y menú), `GameCard.jsx` (tarjeta de juego), `Scores.jsx` (las tres notas), `ReviewForm.jsx` y `ReviewList.jsx` (opiniones), `SocialDrawer.jsx` (panel Social), `ChatDock.jsx` y `Conversation.jsx` (chat), `States.jsx` (carga, error y vacío). |
+| `src/lib/` | La lógica y los datos, sin interfaz. | `firebase.js` (conexión), `reviews.js`, `library.js`, `profiles.js` y `social.js` (lectura y escritura en Firestore), `rawg.js` (catálogo), `hooks.js` (consultas con caché) y `levels.js` (niveles). |
+| `src/context/` | Estado compartido por toda la app. | `AuthContext.jsx` (sesión y perfil) y `ToastContext.jsx` (avisos de éxito y error). |
+
+Fuera de `src/` están `api/rawg.js` y `server/rawg.js` (la función de servidor que protege la clave de RAWG), `firestore.rules` (reglas de seguridad), `tests/` y `e2e/` (pruebas) y `vercel.json` (configuración del despliegue). Las rutas se definen en `src/App.jsx` con React Router.
+
+**Cómo fluye un dato.** Por ejemplo, al publicar una opinión, `ReviewForm.jsx` valida el formulario y llama a `saveReview` de `src/lib/reviews.js`, que escribe en Firestore. Después se actualizan las consultas de `hooks.js`, y `ReviewList.jsx` y `Scores.jsx` muestran la reseña y el promedio nuevos.
+
+## 9. Publicación en Vercel y actualización
+
+**Primera publicación**
+1. Se importó el repositorio de GitHub en Vercel.
+2. Se eligió `my-react-app` como Root Directory, porque es la carpeta que tiene `package.json`.
+3. Vercel detecta Vite. El comando de build es `npm run build` y la carpeta de salida es `dist`, definidos en `vercel.json`.
+4. En *Settings → Environment Variables* se cargaron las cuatro variables `VITE_FIREBASE_*` y la clave `RAWG_API_KEY`, que es privada y solo la usa la función de servidor.
+5. En Firebase se agregó el dominio de Vercel a los dominios autorizados de Authentication.
+
+**Cómo se actualiza**
+1. Cada cambio se hace en una rama aparte y se prueba (lint, build y pruebas automáticas).
+2. Se abre un pull request y se fusiona en `main`.
+3. Vercel está conectado al repositorio, así que cada cambio en `main` dispara un build y una publicación nuevos, sin hacer nada a mano.
+4. Se comprueba en GitHub que el despliegue terminó bien y se prueba la URL publicada.
+
+**Lo que Vercel no actualiza.** Las reglas de Firestore se publican aparte, en la consola de Firebase. Si se cambian las variables de entorno, hay que hacer *Redeploy*. Las dos cosas trajeron problemas durante el proyecto y están contadas en el punto 6.
